@@ -1,0 +1,18 @@
+name: ncf_neumf
+params:                    # NCF (He et al., WWW 2017); variant = neumf
+  factors: 64              # GMF embedding size = predictive factors (same capacity as MF dim 64)
+  mlp_layers: [256, 128, 64]   # MLP tower; embedding = 256/2 = 128 per side, last layer = 64 factors
+  init_std: 0.01           # N(0, 0.01) as in the paper
+  n_neg: 4                 # negatives per positive (paper's default)
+  lr: 0.001                # Adam
+  reg: 0.0001              # L2 on batch embeddings (same form as MF-BPR)
+  batch_size: 4096         # positives per batch (x5 rows with negatives)
+  max_epochs: 200
+  patience: 10
+  eval_every: 1
+  pretrain: true           # NeuMF only: init from separately trained GMF + MLP (paper)
+  alpha: 0.5               # weight of GMF vs MLP output layer when combining pretrained parts
+  finetune_lr_scale: 0.2   # NeuMF fine-tune lr = lr x scale after pretraining
+search:                    # same shape as the MF-BPR grid; extended if the best is on an edge
+  lr: [0.001, 0.005]
+  reg: [0.0001, 0.001, 0.01]

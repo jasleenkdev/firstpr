@@ -1,14 +1,20 @@
-"""Model name (as used in configs/models/<name>.yaml) -> class."""
+"""Model name (as used in configs/models/<name>.yaml) -> constructor."""
+
+from collections.abc import Callable
 
 from firstpr.models.base import Recommender
 from firstpr.models.itemknn import ItemKNN
 from firstpr.models.mf_bpr import MFBPR
+from firstpr.models.ncf import NCF
 from firstpr.models.popularity import Popularity
 
-MODELS: dict[str, type[Recommender]] = {
+MODELS: dict[str, Callable[[], Recommender]] = {
     "popularity": Popularity,
     "itemknn": ItemKNN,
     "mf_bpr": MFBPR,
+    "ncf_gmf": lambda: NCF("gmf"),
+    "ncf_mlp": lambda: NCF("mlp"),
+    "ncf_neumf": lambda: NCF("neumf"),
 }
 
 

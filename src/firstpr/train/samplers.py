@@ -44,3 +44,25 @@ class UniformNegativeSampler:
             b = order[start : start + batch_size]
             u = self.users[b]
             yield u, self.items[b], self.sample_negatives(u)
+
+
+class PointwiseSampler:
+    """Pointwise (BCE) training data: each train positive once per epoch plus `n_neg` uniform
+    negatives per positive (NCF, He et al., WWW 2017). Yields (users, items, labels)."""
+
+    def __init__(self, train: sp.csr_matrix, n_neg: int, seed: int) -> None:
+        self.inner = UniformNegativeSampler(train, seed)
+        self.n_neg = n_neg
+
+    def __len__(self) -> int:
+        return len(self.inner) * (1 + self.n_neg)
+
+    def epoch(self, batch_size: int) -> Iterator[tuple[np.ndarray, np.ndarray, np.ndarray]]:
+        """`batch_size` counts positives; each batch has batch_size * (1 + n_neg) rows."""
+        for u, i, _ in self.inner.epoch(batch_size):
+            neg_u = np.repeat(u, self.n_neg)
+            neg_i = self.inner.sample_negatives(neg_u)
+            users = np.concatenate([u, neg_u])
+            items = np.concatenate([i, neg_i])
+            labels = np.concatenate([np.ones(len(u)), np.zeros(len(neg_u))]).astype(np.float32)
+            yield users, items, labels
