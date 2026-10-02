@@ -1,0 +1,3 @@
+name: popularity
+params: {}      # score = train interaction count; nothing to tune
+search: {}
