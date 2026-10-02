@@ -1,0 +1,24 @@
+# data and artifacts
+/data/
+/checkpoints/
+*.pt
+.cache/
+
+# run outputs (aggregated leaderboard.csv stays tracked)
+results/runs/
+results/best/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# secrets
+.env
+
+# os / editors
+.DS_Store
+.ipynb_checkpoints/
