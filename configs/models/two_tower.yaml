@@ -1,0 +1,16 @@
+name: two_tower
+params:                  # two-tower, in-batch softmax (Yi et al., RecSys 2019); logq = true
+  dim: 64                # id-embedding size (same as MF)
+  hidden: [128, 64]      # tower MLP; output 64-d, L2-normalised
+  init_std: 0.01
+  lr: 0.001              # Adam
+  weight_decay: 0.0
+  temperature: 0.1       # softmax temperature on cosine scores
+  batch_size: 1024       # in-batch negatives = batch_size - 1
+  logq: true              # subtract log item frequency from logits (sampling-bias correction)
+  max_epochs: 200
+  patience: 10
+  eval_every: 1
+search:
+  lr: [0.001, 0.005]
+  temperature: [0.05, 0.1, 0.2]
