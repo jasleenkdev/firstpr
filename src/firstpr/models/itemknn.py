@@ -58,5 +58,9 @@ class ItemKNN(Recommender):
         self.w_ = neighbours.T.tocsr()  # column j = neighbours of target j -> score = X_u @ W
         return {"nnz_similarity": int(self.w_.nnz)}
 
+    def set_context(self, matrix: sp.csr_matrix) -> None:
+        """Score from a different interaction matrix without refitting (fold-in ablation)."""
+        self.x_ = matrix.astype(np.float32).tocsr()
+
     def score(self, user_ids: np.ndarray) -> np.ndarray:
         return (self.x_[user_ids] @ self.w_).toarray()

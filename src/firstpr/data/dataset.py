@@ -33,6 +33,19 @@ def _to_csr(df: pd.DataFrame, n_users: int, n_items: int) -> sp.csr_matrix:
     return m
 
 
+def _ordered_histories(df: pd.DataFrame, n_users: int) -> list[np.ndarray]:
+    """Per-user item arrays in chronological order (`seq` if present, else timestamp, item)."""
+    if "seq" in df.columns:  # position in the user's chronological history
+        ordered = df.sort_values(["user", "seq"], kind="stable")
+    elif "timestamp" in df.columns:
+        ordered = df.sort_values(["user", "timestamp", "item"], kind="stable")
+    else:
+        ordered = df.sort_values(["user"], kind="stable")
+    bounds = np.searchsorted(ordered["user"].to_numpy(), np.arange(n_users + 1))
+    items = ordered["item"].to_numpy()
+    return [items[bounds[u] : bounds[u + 1]] for u in range(n_users)]
+
+
 @dataclass
 class InteractionData:
     """Train / val / test interactions as binary CSR matrices (users x items) plus helpers."""
@@ -43,6 +56,7 @@ class InteractionData:
     val: sp.csr_matrix
     test: sp.csr_matrix
     train_histories: list[np.ndarray]  # per user, train items in time order (oldest first)
+    val_histories: list[np.ndarray]  # per user, val items in time order (fold-in ablation)
     item_popularity: np.ndarray  # train interaction count per item
     head_mask: np.ndarray  # True for head items (top head_fraction by train popularity)
     name: str = "toy"
@@ -67,15 +81,7 @@ class InteractionData:
         train_m = _to_csr(train, n_users, n_items)
         popularity = np.asarray(train_m.sum(axis=0)).ravel().astype(np.int64)
 
-        if "seq" in train.columns:  # position in the user's chronological history
-            ordered = train.sort_values(["user", "seq"], kind="stable")
-        elif "timestamp" in train.columns:
-            ordered = train.sort_values(["user", "timestamp", "item"], kind="stable")
-        else:
-            ordered = train.sort_values(["user"], kind="stable")
-        bounds = np.searchsorted(ordered["user"].to_numpy(), np.arange(n_users + 1))
-        items = ordered["item"].to_numpy()
-        histories = [items[bounds[u] : bounds[u + 1]] for u in range(n_users)]
+        histories = _ordered_histories(train, n_users)
 
         return cls(
             n_users=n_users,
@@ -84,6 +90,7 @@ class InteractionData:
             val=_to_csr(val, n_users, n_items),
             test=_to_csr(test, n_users, n_items),
             train_histories=histories,
+            val_histories=_ordered_histories(val, n_users),
             item_popularity=popularity,
             head_mask=head_item_mask(popularity, head_fraction),
             name=name,
