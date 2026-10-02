@@ -1,0 +1,13 @@
+name: mf_bpr
+params:
+  dim: 64            # embedding size (common default in NCF / LightGCN comparisons)
+  init_std: 0.1      # N(0, 0.1) init, as in the LightGCN PyTorch reference code
+  lr: 0.001          # Adam
+  reg: 0.0001        # L2 on batch embeddings
+  batch_size: 4096
+  max_epochs: 300
+  patience: 10       # evaluations without val NDCG@20 improvement before stopping
+  eval_every: 1
+search:
+  lr: [0.001, 0.005]
+  reg: [0.00001, 0.0001, 0.001]
