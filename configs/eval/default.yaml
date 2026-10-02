@@ -1,0 +1,5 @@
+k: 20                    # cutoff for every top-K metric
+batch_size: 1024         # users scored per batch (memory bound: batch_size x n_items floats)
+seeds: [0, 1, 2]         # final test runs: mean +- std over these
+tune_seed: 0             # validation grid search uses one seed (cost)
+primary_metric: ndcg@20  # model selection / early stopping on validation
