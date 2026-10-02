@@ -50,3 +50,13 @@ def test_tune_then_final_then_leaderboard(tmp_path, toy_data, monkeypatch):
 def test_final_requires_tuning_when_there_is_a_grid(tmp_path, toy_data):
     with pytest.raises(FileNotFoundError):
         final("itemknn", toy_data, {"params": {}, "search": {"k": [5]}}, EVAL, "toy", tmp_path)
+
+
+def test_tune_reuses_finished_val_runs(tmp_path, toy_data):
+    knn = {"params": {"k": 10, "shrink": 0}, "search": {"k": [5, 10]}}
+    tune("itemknn", toy_data, knn, EVAL, "toy", tmp_path)
+    n_before = len(list((tmp_path / "runs").rglob("val_*.json")))
+    knn["search"]["k"].append(20)  # extend the grid: only the new config runs
+    best = tune("itemknn", toy_data, knn, EVAL, "toy", tmp_path)
+    assert len(list((tmp_path / "runs").rglob("val_*.json"))) == n_before + 1
+    assert best["n_configs"] == 3

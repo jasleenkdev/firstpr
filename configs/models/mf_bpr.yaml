@@ -9,5 +9,7 @@ params:
   patience: 10       # evaluations without val NDCG@20 improvement before stopping
   eval_every: 1
 search:
-  lr: [0.001, 0.005]
-  reg: [0.00001, 0.0001, 0.001]
+  # first grid lr {1e-3, 5e-3} x reg {1e-5, 1e-4, 1e-3} picked lr=1e-3, reg=1e-3: a corner of the
+  # grid on both axes (val only), so it was extended; finished configs are reused, not re-run
+  lr: [0.0005, 0.001, 0.005]
+  reg: [0.00001, 0.0001, 0.001, 0.003, 0.01]

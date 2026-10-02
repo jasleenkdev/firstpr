@@ -95,6 +95,16 @@ def existing_test_runs(results_dir: Path, dataset: str, model_name: str, chash: 
     return sorted((results_dir / "runs" / dataset / model_name).glob(f"test_{chash}_s*.json"))
 
 
+def existing_val_run(
+    results_dir: Path, dataset: str, model_name: str, chash: str, seed: int
+) -> dict[str, Any] | None:
+    """Latest finished validation run for this exact config and seed, if any."""
+    paths = sorted(
+        (results_dir / "runs" / dataset / model_name).glob(f"val_{chash}_s{seed}_*.json")
+    )
+    return load_json(paths[-1]) if paths else None
+
+
 def best_config_path(results_dir: Path, model_name: str, dataset: str) -> Path:
     return results_dir / "best" / f"{model_name}_{dataset}.yaml"
 
@@ -106,25 +116,27 @@ def tune(
     eval_cfg: dict[str, Any],
     dataset: str,
     results_dir: Path,
+    reuse: bool = True,
 ) -> dict[str, Any]:
     evaluator = Evaluator(data, k=eval_cfg["k"], batch_size=eval_cfg["batch_size"])
     primary = eval_cfg["primary_metric"]
     grid = expand_grid(model_cfg.get("params", {}), model_cfg.get("search", {}))
+    seed = eval_cfg["tune_seed"]
     log.info("tuning %s on %s: %d configs", model_name, dataset, len(grid))
-    records = [
-        run_single(
-            model_name,
-            data,
-            evaluator,
-            p,
-            eval_cfg["tune_seed"],
-            "val",
-            primary,
-            dataset,
-            results_dir,
-        )
-        for p in grid
-    ]
+    records = []
+    for p in grid:
+        cached = None
+        if reuse:
+            cached = existing_val_run(results_dir, dataset, model_name, config_hash(p), seed)
+        if cached is not None:  # extending a grid does not re-run configs already finished
+            log.info("reusing val run for %s config %s", model_name, cached["config_hash"])
+            records.append(cached)
+        else:
+            records.append(
+                run_single(
+                    model_name, data, evaluator, p, seed, "val", primary, dataset, results_dir
+                )
+            )
     best = max(records, key=lambda r: r["metrics"]["overall"][primary])
     out = {
         "params": best["config"],
