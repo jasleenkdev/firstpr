@@ -9,7 +9,10 @@ params:
   patience: 10       # evaluations without val NDCG@20 improvement before stopping
   eval_every: 1
 search:
-  # first grid lr {1e-3, 5e-3} x reg {1e-5, 1e-4, 1e-3} picked lr=1e-3, reg=1e-3: a corner of the
-  # grid on both axes (val only), so it was extended; finished configs are reused, not re-run
-  lr: [0.0005, 0.001, 0.005]
-  reg: [0.00001, 0.0001, 0.001, 0.003, 0.01]
+  # grid history (all decided on val only; finished configs are reused, not re-run):
+  # 1) lr {1e-3, 5e-3} x reg {1e-5, 1e-4, 1e-3} -> best lr=1e-3, reg=1e-3 (corner)
+  # 2) added lr 5e-4 and reg {3e-3, 1e-2} -> best lr=5e-3, reg=1e-2 (corner again);
+  #    lr=5e-4 was the worst row at every reg, so it is dropped below
+  # 3) current grid: extends reg to 1e-1 and lr to 1e-2
+  lr: [0.001, 0.005, 0.01]
+  reg: [0.00001, 0.0001, 0.001, 0.003, 0.01, 0.03, 0.1]
