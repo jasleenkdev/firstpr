@@ -29,7 +29,7 @@ def main() -> None:
     summary = df.groupby(["model", "context"]).agg(["mean", "std"]).drop(columns="seed")
     summary.columns = [f"{a}_{b}" for a, b in summary.columns]
     summary.reset_index().to_csv(out, index=False, float_format="%.6g")
-    print(summary[["recall@20_mean", "ndcg@20_mean", "ndcg@20_std"]].to_markdown())
+    print(summary[["recall@20_mean", "ndcg@20_mean", "ndcg@20_std"]].to_string())
 
 
 if __name__ == "__main__":
