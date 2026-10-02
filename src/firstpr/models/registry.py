@@ -9,6 +9,7 @@ from firstpr.models.ncf import NCF
 from firstpr.models.popularity import Popularity
 from firstpr.models.sasrec import SASRec
 from firstpr.models.two_tower import TwoTower
+from firstpr.recbole_bridge.model import RecBoleModel
 
 MODELS: dict[str, Callable[[], Recommender]] = {
     "popularity": Popularity,
@@ -22,6 +23,7 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     "sasrec": SASRec,
     "sasrec_bce": SASRec,  # ablation: sasrec's tuned config with the paper's BCE loss
     "sasrec_shuffled": SASRec,  # ablation: sasrec's tuned config on shuffled histories
+    "recbole_bpr": lambda: RecBoleModel("BPR"),  # via recbole_bridge (isolated env)
 }
 
 

@@ -1,0 +1,14 @@
+name: recbole_bpr
+params:                    # RecBole BPR through the bridge: validates the bridge against our MF-BPR
+  embedding_size: 64
+  learning_rate: 0.005
+  weight_decay: 0.0        # RecBole applies this as Adam weight decay on all parameters
+  train_batch_size: 4096
+  train_neg_sample_args: {distribution: uniform, sample_num: 1}
+  epochs: 300
+  stopping_step: 10        # RecBole early stopping on NDCG@20 over our val split
+  eval_step: 1
+  eval_batch_size: 4096
+search:
+  learning_rate: [0.001, 0.005]
+  weight_decay: [0.0, 0.0001]
