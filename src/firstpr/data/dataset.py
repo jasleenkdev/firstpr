@@ -91,7 +91,9 @@ class InteractionData:
         )
 
     @classmethod
-    def from_processed(cls, processed_dir: str | Path, head_fraction: float = 0.2) -> "InteractionData":
+    def from_processed(
+        cls, processed_dir: str | Path, head_fraction: float = 0.2
+    ) -> "InteractionData":
         d = Path(processed_dir)
         stats = load_json(d / "stats.json")
         return cls.from_frames(

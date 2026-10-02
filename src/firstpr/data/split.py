@@ -74,6 +74,9 @@ def chronological_split(
     n_short = int((df.groupby("user").size() < 3).sum())
     log.info(
         "split: train=%d val=%d test=%d, users too short for all three splits=%d",
-        len(train), len(val), len(test), n_short,
+        len(train),
+        len(val),
+        len(test),
+        n_short,
     )
     return SplitResult(train, val, test, n_short)

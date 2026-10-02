@@ -17,7 +17,10 @@ def load_ml1m_ratings(zip_path: str | Path, member: str) -> pd.DataFrame:
     with zipfile.ZipFile(zip_path) as zf:
         text = zf.read(member).replace(b"::", b"\t")  # C parser needs a 1-char separator
     return pd.read_csv(
-        io.BytesIO(text), sep="\t", header=None, names=["user", "item", "rating", "timestamp"],
+        io.BytesIO(text),
+        sep="\t",
+        header=None,
+        names=["user", "item", "rating", "timestamp"],
         dtype="int64",
     )
 
