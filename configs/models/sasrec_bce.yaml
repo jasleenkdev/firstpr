@@ -1,0 +1,4 @@
+name: sasrec_bce
+tuned_from_model: sasrec   # ablation: tuned sasrec config, only the loss changes
+overrides:
+  loss: bce                # paper's loss: BCE with one uniform negative per position

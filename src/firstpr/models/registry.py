@@ -7,6 +7,8 @@ from firstpr.models.itemknn import ItemKNN
 from firstpr.models.mf_bpr import MFBPR
 from firstpr.models.ncf import NCF
 from firstpr.models.popularity import Popularity
+from firstpr.models.sasrec import SASRec
+from firstpr.models.two_tower import TwoTower
 
 MODELS: dict[str, Callable[[], Recommender]] = {
     "popularity": Popularity,
@@ -15,6 +17,11 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     "ncf_gmf": lambda: NCF("gmf"),
     "ncf_mlp": lambda: NCF("mlp"),
     "ncf_neumf": lambda: NCF("neumf"),
+    "two_tower": TwoTower,
+    "two_tower_nologq": TwoTower,  # ablation: same model, logq: false (tuned separately)
+    "sasrec": SASRec,
+    "sasrec_bce": SASRec,  # ablation: sasrec's tuned config with the paper's BCE loss
+    "sasrec_shuffled": SASRec,  # ablation: sasrec's tuned config on shuffled histories
 }
 
 

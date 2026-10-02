@@ -162,14 +162,19 @@ def final(
     tuned_from: str | None = None,
 ) -> list[dict[str, Any]]:
     """3-seed test runs with the tuned config. `tuned_from` lets a data variant (e.g. another
-    tie-break seed) reuse the config tuned on the main dataset, without re-tuning."""
-    best_path = best_config_path(results_dir, model_name, tuned_from or dataset)
+    tie-break seed) reuse the config tuned on the main dataset, without re-tuning.
+
+    Ablations: a model config with `tuned_from_model: <name>` takes that model's tuned params and
+    applies its `overrides` (e.g. sasrec_bce = sasrec's tuned config with loss: bce)."""
+    source = model_cfg.get("tuned_from_model", model_name)
+    best_path = best_config_path(results_dir, source, tuned_from or dataset)
     if best_path.exists():
         params = load_yaml(best_path)["params"]
-    elif model_cfg.get("search"):
+    elif model_cfg.get("search") or source != model_name:
         raise FileNotFoundError(f"{best_path} missing: run tuning (mode val) first")
     else:
         params = dict(model_cfg.get("params", {}))
+    params = {**params, **model_cfg.get("overrides", {})}
 
     chash = config_hash(params)
     existing = existing_test_runs(results_dir, dataset, model_name, chash)

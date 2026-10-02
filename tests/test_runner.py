@@ -60,3 +60,13 @@ def test_tune_reuses_finished_val_runs(tmp_path, toy_data):
     best = tune("itemknn", toy_data, knn, EVAL, "toy", tmp_path)
     assert len(list((tmp_path / "runs").rglob("val_*.json"))) == n_before + 1
     assert best["n_configs"] == 3
+
+
+def test_ablation_reuses_tuned_config_with_overrides(tmp_path, toy_data):
+    knn = {"params": {"k": 10, "shrink": 0}, "search": {"k": [5, 10]}}
+    best = tune("itemknn", toy_data, knn, EVAL, "toy", tmp_path)
+    ablation = {"tuned_from_model": "itemknn", "overrides": {"shrink": 50}}
+    recs = final("itemknn", toy_data, ablation, EVAL, "toy_ablation", tmp_path, tuned_from="toy")
+    assert all(r["config"] == {**best["params"], "shrink": 50} for r in recs)
+    with pytest.raises(FileNotFoundError):  # source model never tuned
+        final("itemknn", toy_data, {"tuned_from_model": "mf_bpr"}, EVAL, "x", tmp_path)

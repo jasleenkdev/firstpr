@@ -1,0 +1,17 @@
+name: sasrec
+params:                 # SASRec (Kang & McAuley, ICDM 2018), own implementation
+  max_len: 200          # paper's ML-1M setting
+  hidden: 64            # paper uses 50; 64 matches the other models
+  blocks: 2             # paper
+  heads: 1              # paper
+  dropout: 0.2          # paper's ML-1M setting
+  lr: 0.001             # Adam, betas (0.9, 0.98) as in the paper
+  batch_size: 128       # sequences per batch (paper)
+  loss: ce              # full-catalog cross-entropy (Klenitskiy & Vasilev 2023); "bce" = paper
+  shuffle_history: false
+  max_epochs: 150
+  patience: 10
+  eval_every: 1
+search:
+  lr: [0.0005, 0.001]
+  dropout: [0.2, 0.5]

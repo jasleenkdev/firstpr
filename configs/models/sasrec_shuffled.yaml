@@ -1,0 +1,4 @@
+name: sasrec_shuffled
+tuned_from_model: sasrec   # ablation: tuned sasrec config on randomly permuted histories
+overrides:
+  shuffle_history: true    # how much does item order help on ML-1M (66% of timestamps tied)?
