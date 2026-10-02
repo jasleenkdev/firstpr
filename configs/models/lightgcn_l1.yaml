@@ -1,0 +1,4 @@
+name: lightgcn_l1
+tuned_from_model: lightgcn   # layer ablation: tuned lightgcn config with 1 propagation layers
+overrides:
+  n_layers: 1

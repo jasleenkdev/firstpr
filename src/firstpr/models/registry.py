@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from firstpr.models.base import Recommender
 from firstpr.models.itemknn import ItemKNN
+from firstpr.models.lightgcn import LightGCN
 from firstpr.models.mf_bpr import MFBPR
 from firstpr.models.ncf import NCF
 from firstpr.models.popularity import Popularity
@@ -24,6 +25,10 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     "sasrec_bce": SASRec,  # ablation: sasrec's tuned config with the paper's BCE loss
     "sasrec_shuffled": SASRec,  # ablation: sasrec's tuned config on shuffled histories
     "recbole_bpr": lambda: RecBoleModel("BPR"),  # via recbole_bridge (isolated env)
+    "lightgcn": LightGCN,
+    "lightgcn_l1": LightGCN,  # layer ablation: lightgcn's tuned config with n_layers overridden
+    "lightgcn_l2": LightGCN,
+    "lightgcn_l4": LightGCN,
 }
 
 

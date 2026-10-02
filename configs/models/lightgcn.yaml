@@ -1,0 +1,14 @@
+name: lightgcn
+params:                 # LightGCN (He et al., SIGIR 2020), own implementation
+  dim: 64               # paper
+  n_layers: 3           # paper's usual best; layers 1-4 are an ablation (lightgcn_l1..l4)
+  init_std: 0.1         # paper code: N(0, 0.1)
+  lr: 0.001             # Adam (paper 1e-3)
+  reg: 0.0001           # L2 on layer-0 batch embeddings (paper 1e-4)
+  batch_size: 8192      # paper 2048; 4x larger for CPU (full-graph propagation per batch), lr grid widened
+  max_epochs: 400
+  patience: 10
+  eval_every: 1
+search:
+  lr: [0.001, 0.005]
+  reg: [0.0001, 0.001, 0.01]
