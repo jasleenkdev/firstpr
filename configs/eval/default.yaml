@@ -3,3 +3,8 @@ batch_size: 1024         # users scored per batch (memory bound: batch_size x n_
 seeds: [0, 1, 2]         # final test runs: mean +- std over these
 tune_seed: 0             # validation grid search uses one seed (cost)
 primary_metric: ndcg@20  # model selection / early stopping on validation
+bootstrap:               # paired bootstrap over users for model differences on test
+  metric: ndcg@20
+  n_resamples: 1000
+  ci: 0.95
+  seed: 0

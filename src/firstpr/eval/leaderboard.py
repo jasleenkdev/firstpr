@@ -10,9 +10,8 @@ METRICS = ["recall@20", "ndcg@20", "hit@20", "coverage@20", "avg_pop@20", "long_
 SLICE_METRICS = [("tail", "recall@20"), ("head", "recall@20")]
 
 
-def aggregate(runs: list[dict[str, Any]], model_order: list[str]) -> pd.DataFrame:
-    """One row per (dataset, model): the latest final config, mean and sample std (ddof=1)
-    over its seeds."""
+def select_final_runs(runs: list[dict[str, Any]]) -> dict[tuple[str, str], list[dict[str, Any]]]:
+    """Per (dataset, model): the runs of the latest final config, newest run per seed."""
     groups: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     for r in runs:
         groups[(r["dataset"], r["model"], r["config_hash"])].append(r)
@@ -24,14 +23,21 @@ def aggregate(runs: list[dict[str, Any]], model_order: list[str]) -> pd.DataFram
             x["finished_at"] for x in latest[key]
         ):
             latest[key] = rs
-
-    rows = []
-    for (dataset, model), rs in latest.items():
-        # one record per seed (if a config was forced to re-run, keep the newest per seed)
-        by_seed = {}
+    final = {}
+    for key, rs in latest.items():
+        by_seed = {}  # if a config was forced to re-run, keep the newest run per seed
         for r in sorted(rs, key=lambda x: x["finished_at"]):
             by_seed[r["seed"]] = r
-        rs = list(by_seed.values())
+        final[key] = [by_seed[s] for s in sorted(by_seed)]
+    return final
+
+
+def aggregate(runs: list[dict[str, Any]], model_order: list[str]) -> pd.DataFrame:
+    """One row per (dataset, model): the latest final config, mean and sample std (ddof=1)
+    over its seeds."""
+    latest = select_final_runs(runs)
+    rows = []
+    for (dataset, model), rs in latest.items():
         row: dict[str, Any] = {"dataset": dataset, "model": model, "n_seeds": len(rs)}
         values = {m: [r["metrics"]["overall"][m] for r in rs] for m in METRICS}
         for s, m in SLICE_METRICS:

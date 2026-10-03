@@ -12,6 +12,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from firstpr.data.dataset import InteractionData
 from firstpr.eval.evaluator import Evaluator
 from firstpr.models.registry import build_model
@@ -55,7 +57,8 @@ def run_single(
     fit_info = model.fit(data, {**params, "seed": seed}, val_fn=val_fn)
     train_time = time.time() - t0
     t0 = time.time()
-    result = evaluator.evaluate(model, mode)  # type: ignore[arg-type]
+    result = evaluator.evaluate(model, mode, per_user=(mode == "test"))  # type: ignore[arg-type]
+    per_user = result.pop("per_user", None)
     inference_time = time.time() - t0
 
     record = {
@@ -77,6 +80,12 @@ def run_single(
     }
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
     path = results_dir / "runs" / dataset / model_name / f"{mode}_{chash}_s{seed}_{stamp}.json"
+    if per_user is not None:  # per-user metrics for paired bootstrap CIs (eval/bootstrap.py)
+        record["per_user_file"] = path.with_suffix(".npz").name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            path.with_suffix(".npz"), **{k.replace("@", "_at_"): v for k, v in per_user.items()}
+        )
     save_json(record, path)
     log.info(
         "%s %s seed=%d %s=%.5f train=%.1fs -> %s",
@@ -201,4 +210,10 @@ def final(
 
 
 def load_runs(results_dir: Path, mode: str = "test") -> list[dict[str, Any]]:
-    return [load_json(p) for p in sorted((results_dir / "runs").rglob(f"{mode}_*.json"))]
+    """All run records of a mode (excluding quarantined `_dirty/` runs), with their file path."""
+    out = []
+    for p in sorted((results_dir / "runs").rglob(f"{mode}_*.json")):
+        if "_dirty" in p.parts:
+            continue
+        out.append({**load_json(p), "_path": str(p)})
+    return out

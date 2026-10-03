@@ -56,7 +56,11 @@ class Evaluator:
             top = np.pad(top, ((0, 0), (0, self.k - k)), constant_values=-1)
         return top
 
-    def evaluate(self, model: Recommender, mode: Mode = "val") -> dict[str, Any]:
+    def evaluate(
+        self, model: Recommender, mode: Mode = "val", per_user: bool = False
+    ) -> dict[str, Any]:
+        """Overall + slice metrics. With per_user=True the result also holds
+        `per_user = {"users", "recall@K", "ndcg@K"}` arrays (for paired bootstrap tests)."""
         targets_m, mask = self._targets_and_mask(mode)
         users = self.users_to_evaluate(mode)
         k = self.k
@@ -96,4 +100,11 @@ class Evaluator:
                 f"ndcg@{k}": float(n.mean()) if len(n) else float("nan"),
                 "n_users": int(len(r)),
             }
-        return {"mode": mode, "n_users": int(len(users)), "overall": overall, "slices": slices}
+        result = {"mode": mode, "n_users": int(len(users)), "overall": overall, "slices": slices}
+        if per_user:
+            result["per_user"] = {
+                "users": users,
+                f"recall@{k}": np.concatenate(recall),
+                f"ndcg@{k}": np.concatenate(ndcg),
+            }
+        return result
