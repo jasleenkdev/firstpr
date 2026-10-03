@@ -12,5 +12,5 @@ params:                  # two-tower, in-batch softmax (Yi et al., RecSys 2019);
   patience: 10
   eval_every: 1
 search:   # grid 1 -> lr 5e-3 / tau 0.2 (edge on both) -> extended (val only)
-  lr: [0.001, 0.005, 0.01]
+  lr: [0.0005, 0.001, 0.005, 0.01]  # grid 2 -> lr 1e-3 (edge) -> 5e-4 added
   temperature: [0.05, 0.1, 0.2, 0.5, 1.0]

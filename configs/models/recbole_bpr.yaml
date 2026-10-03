@@ -11,5 +11,5 @@ params:                    # RecBole BPR through the bridge: validates the bridg
   eval_batch_size: 4096
 search:   # grid 1 -> lr 1e-3 (lower edge) / weight_decay 0; wd 1e-4 collapses (~0.064, whole-table
   # decay starves rare rows) -> extended lr down and wd between 0 and 1e-4 (val only)
-  learning_rate: [0.0005, 0.001, 0.005]
+  learning_rate: [0.00025, 0.0005, 0.001, 0.005]  # grid 2 -> lr 5e-4 (edge) -> 2.5e-4 added
   weight_decay: [0.0, 0.000001, 0.00001, 0.0001]

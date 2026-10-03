@@ -16,5 +16,5 @@ search:
   # grid 1 (lr {5e-4,1e-3} x dropout {0.2,0.5}) -> lr 1e-3 / dropout 0.2 (edge on both) -> extended
   # (val only). max_epochs 150 is a fixed training budget for every config; lr 5e-4 hit it
   # (best epoch 141), i.e. lower lrs are budget-limited under this protocol.
-  lr: [0.0005, 0.001, 0.002]
+  lr: [0.0005, 0.001, 0.002, 0.005]  # grid 2 -> lr 2e-3 (edge) -> 5e-3 added
   dropout: [0.1, 0.2, 0.5]
