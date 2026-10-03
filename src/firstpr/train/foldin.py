@@ -72,6 +72,6 @@ def run_foldin(
                 / "runs"
                 / f"{data.name}_foldin"
                 / model_name
-                / f"test_{context}_s{seed}.json",
+                / f"foldin_{context}_s{seed}.json",  # not test_*: kept out of the leaderboard
             )
     return pd.DataFrame(rows)
