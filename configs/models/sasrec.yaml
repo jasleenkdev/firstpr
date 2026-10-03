@@ -13,5 +13,8 @@ params:                 # SASRec (Kang & McAuley, ICDM 2018), own implementation
   patience: 10
   eval_every: 1
 search:
-  lr: [0.0005, 0.001]
-  dropout: [0.2, 0.5]
+  # grid 1 (lr {5e-4,1e-3} x dropout {0.2,0.5}) -> lr 1e-3 / dropout 0.2 (edge on both) -> extended
+  # (val only). max_epochs 150 is a fixed training budget for every config; lr 5e-4 hit it
+  # (best epoch 141), i.e. lower lrs are budget-limited under this protocol.
+  lr: [0.0005, 0.001, 0.002]
+  dropout: [0.1, 0.2, 0.5]

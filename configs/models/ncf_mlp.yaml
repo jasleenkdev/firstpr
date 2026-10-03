@@ -13,7 +13,7 @@ params:                    # NCF (He et al., WWW 2017); variant = mlp
   pretrain: false           # NeuMF only: init from separately trained GMF + MLP (paper)
   alpha: 0.5               # weight of GMF vs MLP output layer when combining pretrained parts
   finetune_lr_scale: 0.2   # NeuMF fine-tune lr = lr x scale after pretraining
-search:                    # grid 1 (lr {1e-3,5e-3} x reg {1e-4,1e-3,1e-2}) picked lr 5e-3 / reg 1e-4,
-  # an edge on both axes (val only) -> extended; finished configs are reused
-  lr: [0.001, 0.005, 0.01]
+search:                    # grid 1 (lr {1e-3,5e-3} x reg {1e-4,1e-3,1e-2}) -> lr 5e-3 / reg 1e-4 (edge);
+  # grid 2 (lr {1e-3,5e-3,1e-2} x reg {1e-5..1e-2}) -> lr 1e-2 / reg 1e-3 (lr edge) -> lr 2e-2 added
+  lr: [0.001, 0.005, 0.01, 0.02]
   reg: [0.00001, 0.0001, 0.001, 0.01]
