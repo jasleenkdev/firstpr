@@ -1,0 +1,15 @@
+backend: ollama
+model: llama3.2:3b
+options:
+  temperature: 0
+  num_predict: 160         # 20 bracketed ids with separators
+  seed: 0
+workers: 4
+seed: 0                    # user sample, random candidates, shuffles
+n_users: 200               # fixed random sample of test users (LLM cost; CIs reported)
+n_candidates: 20
+n_shuffles: 3              # position-bias control (Hou et al. 2024): Borda over 3 orders
+max_history: 20            # most recent train items in the prompt
+max_title_chars: 100
+k: 10                      # NDCG@10 inside the 20 candidates is the headline metric
+bootstrap: {n_resamples: 1000, ci: 0.95, seed: 0}

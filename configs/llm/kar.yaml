@@ -1,0 +1,10 @@
+backend: ollama            # local, free; groq needs GROQ_API_KEY
+model: llama3.2:3b
+options:
+  temperature: 0           # deterministic; responses are cached anyway
+  num_predict: 96          # 2-3 sentences
+  seed: 0
+workers: 4                 # concurrent requests to the local server (measured 1.3x faster than 1)
+user:
+  max_items: 20            # most recent products in the prompt
+  max_title_chars: 100
