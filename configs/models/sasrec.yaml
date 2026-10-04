@@ -18,3 +18,6 @@ search:
   # (best epoch 141), i.e. lower lrs are budget-limited under this protocol.
   lr: [0.0005, 0.001, 0.002, 0.005]  # grid 2 -> lr 2e-3 (edge) -> 5e-3 added
   dropout: [0.1, 0.2, 0.5]
+params_override:        # per-dataset defaults (part of the tuned config on that dataset only)
+  amazon_sci:
+    max_len: 50         # Amazon histories: median 7, max 115 train items; 200 was 4x slower

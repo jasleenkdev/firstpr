@@ -139,7 +139,11 @@ def tune(
 ) -> dict[str, Any]:
     evaluator = Evaluator(data, k=eval_cfg["k"], batch_size=eval_cfg["batch_size"])
     primary = eval_cfg["primary_metric"]
-    grid = expand_grid(model_cfg.get("params", {}), search_space(model_cfg, dataset))
+    params = {
+        **model_cfg.get("params", {}),
+        **model_cfg.get("params_override", {}).get(dataset, {}),
+    }
+    grid = expand_grid(params, search_space(model_cfg, dataset))
     seed = eval_cfg["tune_seed"]
     log.info("tuning %s on %s: %d configs", model_name, dataset, len(grid))
     records = []
@@ -192,7 +196,10 @@ def final(
     elif model_cfg.get("search") or source != model_name:
         raise FileNotFoundError(f"{best_path} missing: run tuning (mode val) first")
     else:
-        params = dict(model_cfg.get("params", {}))
+        params = {
+            **model_cfg.get("params", {}),
+            **model_cfg.get("params_override", {}).get(tuned_from or dataset, {}),
+        }
     params = {**params, **model_cfg.get("overrides", {})}
 
     chash = config_hash(params)
