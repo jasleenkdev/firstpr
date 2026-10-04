@@ -61,6 +61,7 @@ class InteractionData:
     head_mask: np.ndarray  # True for head items (top head_fraction by train popularity)
     name: str = "toy"
     stats: dict = field(default_factory=dict)
+    processed_dir: str | None = None  # where side files live (e.g. item text, text embeddings)
 
     @property
     def tail_mask(self) -> np.ndarray:
@@ -103,7 +104,7 @@ class InteractionData:
     ) -> "InteractionData":
         d = Path(processed_dir)
         stats = load_json(d / "stats.json")
-        return cls.from_frames(
+        data = cls.from_frames(
             pd.read_parquet(d / "train.parquet"),
             pd.read_parquet(d / "val.parquet"),
             pd.read_parquet(d / "test.parquet"),
@@ -113,3 +114,5 @@ class InteractionData:
             name=stats["name"],
             stats=stats,
         )
+        data.processed_dir = str(d)
+        return data

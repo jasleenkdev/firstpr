@@ -1,0 +1,25 @@
+name: amazon_sci
+source: amazon2023      # Amazon Reviews 2023 (Hou, Li, He, Yan, Chen & McAuley, 2024)
+download:
+  # pinned dataset revision on the Hugging Face hub; sha256 = the files' LFS object ids
+  revision: 2b6d039ed471f2ba5fd2acb718bf33b0a7e5598e
+  base_url: https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023/resolve
+  ratings_path: benchmark/5core/rating_only/Industrial_and_Scientific.csv
+  ratings_sha256: c0cb90d6c99f5c13a298565f02743588d590e2cfa4568dfb0bd88fec1a523bb6
+  meta_path: raw/meta_categories/meta_Industrial_and_Scientific.jsonl
+  meta_sha256: 114fcde36f6205bde5d0ebed24613a35e475aa06b285011ed1e892dc26da3942
+  raw_dir: data/raw/amazon2023
+preprocess:
+  min_date: "2020-01-01"  # keeps the category small enough for an LLM call per item and user
+  rating_threshold: 4
+  k_core: 5
+split:
+  train: 0.8
+  val: 0.1
+  test: 0.1
+  tie_break_seed: 0
+item_text:
+  max_features: 3         # first bullet points of the product page
+  max_description_chars: 300
+head_fraction: 0.2
+processed_dir: data/processed/amazon_sci
