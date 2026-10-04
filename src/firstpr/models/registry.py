@@ -36,6 +36,8 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     "recbole_lightgcn": lambda: RecBoleModel("LightGCN"),  # reference check for our lightgcn
     # phase 4: SASRec over frozen text embeddings; adapter linear / mlp / moe, +- ID embedding
     **{f"sasrec_text_{a}{i}": TextSASRec for a in ("linear", "mlp", "moe") for i in ("", "_id")},
+    "sasrec_text_kar_item": TextSASRec,
+    "sasrec_text_kar": TextSASRec,
 }
 
 

@@ -1,0 +1,5 @@
+name: sasrec_text_kar_item
+tuned_from_model: sasrec_text_linear_id  # best text variant on Amazon val; KAR is added on top
+overrides:                 # KAR (Xi et al. 2024), item side only: LLM item knowledge, encoded by
+  item_knowledge: true     # the same frozen encoder, through a hybrid-expert adapter, added to
+                           # every item vector (data/processed/<dataset>/kar_items.parquet)

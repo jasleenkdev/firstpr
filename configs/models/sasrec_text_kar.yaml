@@ -1,0 +1,5 @@
+name: sasrec_text_kar
+tuned_from_model: sasrec_text_linear_id  # best text variant on Amazon val; KAR is added on top
+overrides:                 # KAR (Xi et al. 2024), item + user side: also the LLM's summary of the
+  item_knowledge: true     # user's preferences (train history minus its last item, titles only),
+  user_preference: true    # added at the last position (kar_users.parquet)
