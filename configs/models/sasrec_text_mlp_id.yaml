@@ -19,4 +19,4 @@ search:
 search_extend:
   amazon_sci:           # best lr 1e-3 / dropout 0.2: corner (+2% over dropout 0.5)
     lr: [0.0005]
-    dropout: [0.1]
+    dropout: [0.0, 0.1] # round 2: lr 2e-3 / dropout 0.1 (+1.1%) -> dropout 0
