@@ -35,6 +35,16 @@ def expand_grid(params: dict[str, Any], search: dict[str, list[Any]]) -> list[di
     ]
 
 
+def search_space(model_cfg: dict[str, Any], dataset: str) -> dict[str, list[Any]]:
+    """The model's `search` grid, with per-dataset extensions from `search_extend: {dataset:
+    {param: [extra values]}}` (edge extensions decided on one dataset's val set must not change
+    the grid another dataset was tuned on)."""
+    search = {k: list(v) for k, v in model_cfg.get("search", {}).items()}
+    for key, extra in model_cfg.get("search_extend", {}).get(dataset, {}).items():
+        search[key] = sorted(set(search.get(key, [])) | set(extra))
+    return search
+
+
 def run_single(
     model_name: str,
     data: InteractionData,
@@ -129,7 +139,7 @@ def tune(
 ) -> dict[str, Any]:
     evaluator = Evaluator(data, k=eval_cfg["k"], batch_size=eval_cfg["batch_size"])
     primary = eval_cfg["primary_metric"]
-    grid = expand_grid(model_cfg.get("params", {}), model_cfg.get("search", {}))
+    grid = expand_grid(model_cfg.get("params", {}), search_space(model_cfg, dataset))
     seed = eval_cfg["tune_seed"]
     log.info("tuning %s on %s: %d configs", model_name, dataset, len(grid))
     records = []

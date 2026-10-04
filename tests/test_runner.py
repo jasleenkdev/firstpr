@@ -84,3 +84,11 @@ def test_every_model_config_is_registered():
         assert path.stem in MODELS, path
         if "tuned_from_model" in cfg:
             assert (path.parent / f"{cfg['tuned_from_model']}.yaml").exists(), path
+
+
+def test_search_extend_is_per_dataset():
+    from firstpr.train.runner import search_space
+
+    cfg = {"search": {"k": [1, 2], "s": [0]}, "search_extend": {"b": {"s": [5, 0]}}}
+    assert search_space(cfg, "a") == {"k": [1, 2], "s": [0]}
+    assert search_space(cfg, "b") == {"k": [1, 2], "s": [0, 5]}

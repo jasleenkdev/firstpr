@@ -5,3 +5,6 @@ params:          # defaults; the tuned config is written to results/best/itemknn
 search:          # grid tuned on val NDCG@20 (Dacrema et al., RecSys 2019: tune baselines properly)
   k: [20, 50, 100, 200]
   shrink: [0, 10, 50, 100]
+search_extend:          # per-dataset edge extensions (val only)
+  amazon_sci:           # grid 1 best k=200/shrink=100 (shrink edge +2.2%; k edge +0.7% -> stop)
+    shrink: [200, 500]
