@@ -15,6 +15,8 @@ params:                    # RecBole LightGCN through the bridge: reference chec
 search:                    # same grid as our lightgcn; only init differs (RecBole: Xavier uniform)
   # grid 1 lr {2e-3, 5e-3, 1e-2} x reg {1e-4, 1e-3, 1e-2}: lower reg edge again -> reg 1e-5 added,
   # worst row lr 2e-3 dropped (same extension as our lightgcn); best moved to lr 1e-2 / reg 1e-3
-  # (upper lr edge, +1.3% over lr 5e-3) -> lr 2e-2 added
-  learning_rate: [0.005, 0.01, 0.02]
+  # (upper lr edge, +1.3% over lr 5e-3) -> lr 2e-2 added; best lr 2e-2 / reg 1e-3 (edge again,
+  # +1.9%) -> lr 4e-2 added. Note: the lr 2e-2 config was run on test (queued right after tuning)
+  # before this edge check; those runs stay in results/runs and do not inform the decision
+  learning_rate: [0.005, 0.01, 0.02, 0.04]
   reg_weight: [0.00001, 0.0001, 0.001, 0.01]
