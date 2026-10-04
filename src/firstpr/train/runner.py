@@ -227,10 +227,11 @@ def final(
 
 
 def load_runs(results_dir: Path, mode: str = "test") -> list[dict[str, Any]]:
-    """All run records of a mode (excluding quarantined `_dirty/` runs), with their file path."""
+    """All run records of a mode (excluding quarantined `_dirty/` and `_interrupted/` runs), with
+    their file path."""
     out = []
     for p in sorted((results_dir / "runs").rglob(f"{mode}_*.json")):
-        if "_dirty" in p.parts:
+        if "_dirty" in p.parts or "_interrupted" in p.parts:
             continue
         out.append({**load_json(p), "_path": str(p)})
     return out

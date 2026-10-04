@@ -101,3 +101,12 @@ def test_params_override_is_per_dataset(tmp_path, toy_data):
     ev = {"k": 5, "batch_size": 64, "tune_seed": 0, "primary_metric": "ndcg@5"}
     assert "x" not in tune("popularity", toy_data, cfg, ev, "toy", tmp_path)["params"]
     assert tune("popularity", toy_data, cfg, ev, "other", tmp_path)["params"] == {"x": 1}
+
+
+def test_load_runs_skips_quarantined_records(tmp_path):
+    from firstpr.train.runner import load_runs
+    from firstpr.utils.io import save_json
+
+    for sub in ("ds/m", "_dirty/ds/m", "_interrupted/ds/m"):
+        save_json({"mode": "test", "model": "m"}, tmp_path / "runs" / sub / "test_x_s0_1.json")
+    assert len(load_runs(tmp_path, "test")) == 1

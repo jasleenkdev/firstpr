@@ -16,3 +16,6 @@ search:
   # 3) current grid: extends reg to 1e-1 and lr to 1e-2
   lr: [0.001, 0.005, 0.01]
   reg: [0.00001, 0.0001, 0.001, 0.003, 0.01, 0.03, 0.1]
+search_extend:
+  amazon_sci:           # sparse data: reg <= 1e-2 ends at or below Popularity; best so far at
+    reg: [0.3, 1.0]     # the top reg edge (0.1, +15% over 0.03) -> extended (val only)
