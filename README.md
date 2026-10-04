@@ -114,3 +114,61 @@ What I take from it:
 - **RecBole's BPR, run through my bridge on my split and evaluator, lands in the same range as my
   MF-BPR** (slightly higher: +0.0022, CI [+0.0008, +0.0036]). That validates the bridge and suggests
   my MF-BPR still has a little tuning headroom.
+
+## Phase 3 results: graph models on MovieLens-1M
+
+LightGCN is my own implementation; NGCF and a second LightGCN run through RecBole via the same
+bridge, as a reference check. Same split, evaluator and tuning protocol as before. Test set, full
+ranking, mean ± std over 3 seeds (`results/leaderboard.csv`, `results/bootstrap_cis.csv`):
+
+| Model | Recall@20 | NDCG@20 | Coverage@20 | Long-tail share | Tail Recall@20 |
+|---|---|---|---|---|---|
+| MF-BPR (phase 1) | 0.1187 ± 0.0027 | 0.0772 ± 0.0012 | 0.520 | 0.086 | 0.0202 |
+| NGCF (RecBole) | 0.1124 ± 0.0009 | 0.0723 ± 0.0011 | 0.559 | 0.110 | 0.0227 |
+| LightGCN (mine, 3 layers) | 0.1219 ± 0.0008 | 0.0781 ± 0.0004 | 0.559 | 0.094 | 0.0230 |
+| LightGCN (RecBole) | 0.1232 ± 0.0030 | 0.0799 ± 0.0012 | 0.508 | 0.079 | 0.0233 |
+| SASRec (phase 2) | 0.1766 ± 0.0019 | 0.1095 ± 0.0015 | 0.799 | 0.262 | 0.0711 |
+
+| Comparison | Δ NDCG@20 (paired bootstrap, 95% CI) |
+|---|---|
+| LightGCN − MF-BPR | +0.0009 [−0.0005, +0.0023] |
+| LightGCN − NGCF | +0.0058 [+0.0043, +0.0074] |
+| MF-BPR − NGCF | +0.0049 [+0.0033, +0.0064] |
+| RecBole LightGCN − my LightGCN | +0.0018 [+0.0003, +0.0031] |
+| LightGCN 3 layers − 1 layer | +0.0021 [+0.0011, +0.0030] |
+| LightGCN 3 layers − 2 layers | +0.0005 [−0.0003, +0.0012] |
+| LightGCN 4 layers − 3 layers | +0.0002 [−0.0005, +0.0008] |
+| LightGCN, init std 0.1 − 0.01 | +0.0004 [−0.0008, +0.0016] |
+| MF-BPR, init std 0.1 − 0.01 | +0.0003 [−0.0008, +0.0014] |
+
+NDCG@20 by user activity (quartiles of train history length; `results/analysis/`):
+
+| Users with … train items | 3–20 | 21–45 | 46–98 | 99–1133 |
+|---|---|---|---|---|
+| MF-BPR | 0.0930 | 0.0788 | 0.0641 | 0.0737 |
+| NGCF | 0.0858 | 0.0752 | 0.0611 | 0.0677 |
+| LightGCN | 0.0994 | 0.0793 | 0.0629 | 0.0719 |
+| LightGCN − MF-BPR (95% CI) | +0.0065 [+0.0023, +0.0107] | +0.0005 [−0.0021, +0.0033] | −0.0012 [−0.0031, +0.0009] | −0.0019 [−0.0037, −0.0002] |
+| SASRec | 0.1670 | 0.1317 | 0.0850 | 0.0569 |
+| SASRec with val items as context | 0.2429 | 0.2241 | 0.1986 | 0.1664 |
+
+What I take from it:
+
+- **Removing NGCF's feature transforms and non-linearities helps**, as the LightGCN paper argues:
+  NGCF is significantly below both LightGCN and plain MF-BPR overall, and below MF-BPR in every
+  activity group.
+- **Graph propagation helps sparse users, not everyone.** Overall LightGCN ties MF-BPR, but for
+  the quarter of users with at most 20 train items it is clearly better (+7% NDCG@20), and for the
+  most active quarter it is slightly worse. Averaged over all users, the two effects roughly cancel.
+- **Depth saturates at 2 layers.** One layer is significantly worse than three; two, three and four
+  layers are tied.
+- **LightGCN starts out as a popularity model.** At a small learning rate it sat at Popularity's
+  validation score for 20+ epochs before it began to personalise, both in my implementation and in
+  RecBole's, so early stopping with patience 10 stopped it there. I added a minimum number of
+  epochs before early stopping can fire.
+- **RecBole's LightGCN lands slightly above mine,** the same small gap as RecBole BPR vs my MF-BPR.
+  Initialisation is not the cause: changing the init std from 0.1 to 0.01 changes neither model.
+- **SASRec's weakness on very active users is stale context.** Scored from train only, SASRec is
+  below Popularity for the most active quarter. Those users have long validation periods (median 20
+  items) between the end of the input sequence and the first test item. With the validation items
+  as context, their NDCG@20 almost triples.
