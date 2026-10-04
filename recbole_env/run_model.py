@@ -12,14 +12,32 @@ import sys
 import time
 
 import numpy as np
+import recbole.trainer.trainer as rb_trainer
 import torch
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
 from recbole.utils import get_model, get_trainer, init_seed
 
 
+def guard_early_stopping(min_evals: int) -> None:
+    """Do not let RecBole stop before `min_evals` validations (same rule as FirstPR's trainer
+    `min_epochs`: LightGCN sits on a popularity plateau for the first epochs at small lr)."""
+    original = rb_trainer.early_stopping
+    calls = {"n": 0}
+
+    def guarded(*args, **kwargs):
+        calls["n"] += 1
+        best, cur_step, stop, update = original(*args, **kwargs)
+        return best, cur_step, stop and calls["n"] >= min_evals, update
+
+    rb_trainer.early_stopping = guarded
+
+
 def main(job_path: str) -> None:
     job = json.load(open(job_path))
+    min_epochs = int(job["config"].pop("min_epochs", 0))
+    if min_epochs:
+        guard_early_stopping(min_epochs // int(job["config"].get("eval_step", 1)))
     cfg = {
         "data_path": job["data_path"],
         "benchmark_filename": ["train", "valid", "test"],

@@ -4,13 +4,14 @@ params:                    # RecBole LightGCN through the bridge: reference chec
   n_layers: 3              # same as our main lightgcn (RecBole default is 2)
   require_pow: true        # squared L2 / batch / 2 on layer-0 embeddings, the same form as ours
   reg_weight: 0.0001
-  learning_rate: 0.001
+  learning_rate: 0.005
   train_batch_size: 8192   # same CPU compromise as our lightgcn
   train_neg_sample_args: {distribution: uniform, sample_num: 1}
   epochs: 400
   stopping_step: 10
+  min_epochs: 30           # bridge guard: no early stop before this (popularity plateau)
   eval_step: 1
   eval_batch_size: 4096
 search:                    # same grid as our lightgcn; only init differs (RecBole: Xavier uniform)
-  learning_rate: [0.001, 0.005]
+  learning_rate: [0.002, 0.005, 0.01]
   reg_weight: [0.0001, 0.001, 0.01]

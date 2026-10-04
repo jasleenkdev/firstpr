@@ -20,11 +20,14 @@ def train_with_early_stopping(
     max_epochs: int,
     patience: int,
     eval_every: int = 1,
+    min_epochs: int = 0,
 ) -> dict[str, Any]:
     """Run `run_epoch(epoch) -> mean loss` until the val metric stops improving.
 
     Keeps the best weights in memory and restores them at the end. Stops after `patience`
-    evaluations without improvement, or on a non-finite loss (reported, not hidden).
+    evaluations without improvement, or on a non-finite loss (reported, not hidden). Early stopping
+    cannot fire before `min_epochs`: some models sit on a popularity-like plateau at the start
+    (LightGCN at small lr) and would otherwise be stopped before they begin to personalise.
     """
     best_val, best_epoch, best_state = -math.inf, 0, None
     bad_evals, history = 0, []
@@ -53,7 +56,7 @@ def train_with_early_stopping(
                 best_val,
                 best_epoch,
             )
-            if bad_evals >= patience:
+            if bad_evals >= patience and epoch >= min_epochs:
                 stopped = "early_stopping"
                 break
         history.append(record)

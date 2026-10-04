@@ -111,6 +111,7 @@ class LightGCN(Recommender):
             max_epochs=int(config["max_epochs"]),
             patience=int(config["patience"]),
             eval_every=int(config.get("eval_every", 1)),
+            min_epochs=int(config.get("min_epochs", 0)),
         )
         self._cache = None
         self.module.eval()

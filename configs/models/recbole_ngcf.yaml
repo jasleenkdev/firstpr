@@ -5,13 +5,14 @@ params:                      # NGCF (Wang et al., SIGIR 2019) via the RecBole br
   node_dropout: 0.0
   message_dropout: 0.1       # paper / RecBole default
   reg_weight: 0.00001        # RecBole default L2 on embeddings
-  learning_rate: 0.001
+  learning_rate: 0.005
   train_batch_size: 8192     # same CPU compromise as lightgcn
   train_neg_sample_args: {distribution: uniform, sample_num: 1}
   epochs: 400
   stopping_step: 10
+  min_epochs: 30             # bridge guard, same as lightgcn
   eval_step: 1
   eval_batch_size: 4096
 search:
-  learning_rate: [0.001, 0.005]
+  learning_rate: [0.002, 0.005, 0.01]   # same batch-scaled lr grid as lightgcn
   reg_weight: [0.00001, 0.0001, 0.001]
