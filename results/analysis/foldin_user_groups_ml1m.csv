@@ -1,0 +1,17 @@
+model,context,group,history_len,median_val_len,n_users,mean,std
+itemknn,train,0,3-20,2,1437,0.0888594,0
+itemknn,train,1,21-45,4,1561,0.0772093,0
+itemknn,train,2,46-98,8,1505,0.0606448,0
+itemknn,train,3,99-1133,20,1531,0.0721679,0
+itemknn,train+val,0,3-20,2,1437,0.110236,0
+itemknn,train+val,1,21-45,4,1561,0.0920173,0
+itemknn,train+val,2,46-98,8,1505,0.0735471,0
+itemknn,train+val,3,99-1133,20,1531,0.0808956,0
+sasrec,train,0,3-20,2,1437,0.166953,0.0038618
+sasrec,train,1,21-45,4,1561,0.130714,0.00270334
+sasrec,train,2,46-98,8,1505,0.0838175,0.00361116
+sasrec,train,3,99-1133,20,1531,0.0571239,0.00150441
+sasrec,train+val,0,3-20,2,1437,0.242884,0.005306
+sasrec,train+val,1,21-45,4,1561,0.224077,0.000395791
+sasrec,train+val,2,46-98,8,1505,0.198615,0.00253414
+sasrec,train+val,3,99-1133,20,1531,0.166449,0.00236766
