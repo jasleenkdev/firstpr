@@ -16,3 +16,6 @@ search:   # lr 1e-3 dropped: at batch 8192 it sat on the popularity plateau (val
   # at every reg, so it is dropped
   lr: [0.005, 0.01]
   reg: [0.00001, 0.0001, 0.001, 0.01]
+search_extend:
+  amazon_sci:           # grid 1 best lr 1e-2 / reg 1e-3 (lr edge, +1.2%) -> lr 2e-2 added
+    lr: [0.02]
