@@ -11,5 +11,8 @@ params:                 # LightGCN (He et al., SIGIR 2020), own implementation
   min_epochs: 30        # no early stop before this: LightGCN starts on a popularity plateau
   eval_every: 1
 search:   # lr 1e-3 dropped: at batch 8192 it sat on the popularity plateau (val 0.063) past patience
-  lr: [0.002, 0.005, 0.01]
-  reg: [0.0001, 0.001, 0.01]
+  # grid history (val only): 1) lr {2e-3, 5e-3, 1e-2} x reg {1e-4, 1e-3, 1e-2} -> best lr 5e-3 /
+  # reg 1e-4 (lower reg edge, +3.8% over reg 1e-3) -> reg 1e-5 added; lr 2e-3 was the worst row
+  # at every reg, so it is dropped
+  lr: [0.005, 0.01]
+  reg: [0.00001, 0.0001, 0.001, 0.01]
