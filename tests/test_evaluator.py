@@ -95,3 +95,23 @@ def test_wrong_score_shape_raises(toy_data):
     ev = Evaluator(toy_data, k=20)
     with pytest.raises(ValueError):
         ev.evaluate(FixedScores(np.zeros((toy_data.n_users, 3))), "val")
+
+
+def test_cold_item_slice_only_when_cold_items_exist():
+    import pandas as pd
+
+    from firstpr.data.dataset import InteractionData
+    from firstpr.eval.evaluator import Evaluator
+    from firstpr.models.popularity import Popularity
+
+    train = pd.DataFrame({"user": [0, 0, 0, 0, 1, 1], "item": [0, 1, 2, 4, 0, 1]})
+    val = pd.DataFrame({"user": [0, 1], "item": [5, 2]})
+    test = pd.DataFrame({"user": [0, 1], "item": [3, 4]})  # item 3: no train interactions
+    data = InteractionData.from_frames(train, val, test, n_users=2, n_items=6)
+    pop = Popularity()
+    pop.fit(data, {})
+    res = Evaluator(data, k=2).evaluate(pop, "test", per_user=True)
+    assert set(res["slices"]) == {"head", "tail", "cold"}
+    assert res["slices"]["cold"]["n_users"] == 1
+    cold = res["per_user"]["cold_ndcg@2"]
+    assert np.isnan(cold).sum() == 1 and np.nanmax(cold) >= 0

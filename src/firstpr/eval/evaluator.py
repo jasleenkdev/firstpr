@@ -65,9 +65,13 @@ class Evaluator:
         users = self.users_to_evaluate(mode)
         k = self.k
         head = self.data.head_mask
+        # cold items (no train interactions) only exist on some datasets (Amazon, not ML-1M)
+        cold = self.data.item_popularity == 0
+        slice_masks = [("head", head), ("tail", ~head)] + ([("cold", cold)] if cold.any() else [])
 
         recall, ndcg, hit, tops = [], [], [], []
-        sl = {"head": ([], []), "tail": ([], [])}
+        sl: dict[str, tuple[list, list]] = {name: ([], []) for name, _ in slice_masks}
+        cold_ndcg = []
         for start in range(0, len(users), self.batch_size):
             batch = users[start : start + self.batch_size]
             top = self.topk(model, batch, mask)
@@ -78,10 +82,14 @@ class Evaluator:
             ndcg.append(M.ndcg_at_k(hits, n_targets))
             hit.append(M.hit_rate_at_k(hits))
             tops.append(top)
-            for name, item_mask in (("head", head), ("tail", ~head)):
-                r, n, _ = slice_metrics(top, targets, item_mask)
+            for name, item_mask in slice_masks:
+                r, n, keep = slice_metrics(top, targets, item_mask)
                 sl[name][0].append(r)
                 sl[name][1].append(n)
+                if name == "cold":  # per user, NaN where the user has no cold target
+                    full = np.full(len(batch), np.nan)
+                    full[keep] = n
+                    cold_ndcg.append(full)
 
         top_all = np.concatenate(tops)
         overall = {
@@ -107,4 +115,6 @@ class Evaluator:
                 f"recall@{k}": np.concatenate(recall),
                 f"ndcg@{k}": np.concatenate(ndcg),
             }
+            if cold_ndcg:
+                result["per_user"][f"cold_ndcg@{k}"] = np.concatenate(cold_ndcg)
         return result
