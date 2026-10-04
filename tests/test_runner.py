@@ -92,3 +92,12 @@ def test_search_extend_is_per_dataset():
     cfg = {"search": {"k": [1, 2], "s": [0]}, "search_extend": {"b": {"s": [5, 0]}}}
     assert search_space(cfg, "a") == {"k": [1, 2], "s": [0]}
     assert search_space(cfg, "b") == {"k": [1, 2], "s": [0, 5]}
+
+
+def test_params_override_is_per_dataset(tmp_path, toy_data):
+    from firstpr.train.runner import tune
+
+    cfg = {"params": {}, "params_override": {"other": {"x": 1}}}
+    ev = {"k": 5, "batch_size": 64, "tune_seed": 0, "primary_metric": "ndcg@5"}
+    assert "x" not in tune("popularity", toy_data, cfg, ev, "toy", tmp_path)["params"]
+    assert tune("popularity", toy_data, cfg, ev, "other", tmp_path)["params"] == {"x": 1}

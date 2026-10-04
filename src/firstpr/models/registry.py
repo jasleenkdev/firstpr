@@ -9,6 +9,7 @@ from firstpr.models.mf_bpr import MFBPR
 from firstpr.models.ncf import NCF
 from firstpr.models.popularity import Popularity
 from firstpr.models.sasrec import SASRec
+from firstpr.models.sasrec_text import TextSASRec
 from firstpr.models.two_tower import TwoTower
 from firstpr.recbole_bridge.model import RecBoleModel
 
@@ -33,6 +34,8 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     "lightgcn_init001": LightGCN,  # init ablation: lightgcn's tuned config with N(0, 0.01) init
     "recbole_ngcf": lambda: RecBoleModel("NGCF"),
     "recbole_lightgcn": lambda: RecBoleModel("LightGCN"),  # reference check for our lightgcn
+    # phase 4: SASRec over frozen text embeddings; adapter linear / mlp / moe, +- ID embedding
+    **{f"sasrec_text_{a}{i}": TextSASRec for a in ("linear", "mlp", "moe") for i in ("", "_id")},
 }
 
 
