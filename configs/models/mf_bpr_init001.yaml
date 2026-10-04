@@ -1,0 +1,4 @@
+name: mf_bpr_init001
+tuned_from_model: mf_bpr     # init ablation: tuned mf_bpr config with N(0, 0.01) init
+overrides:
+  init_std: 0.01

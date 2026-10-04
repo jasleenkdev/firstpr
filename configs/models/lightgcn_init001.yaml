@@ -1,0 +1,4 @@
+name: lightgcn_init001
+tuned_from_model: lightgcn   # init ablation: tuned lightgcn config with N(0, 0.01) init
+overrides:
+  init_std: 0.01

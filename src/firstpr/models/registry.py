@@ -16,6 +16,7 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     "popularity": Popularity,
     "itemknn": ItemKNN,
     "mf_bpr": MFBPR,
+    "mf_bpr_init001": MFBPR,  # init ablation: mf_bpr's tuned config with N(0, 0.01) init
     "ncf_gmf": lambda: NCF("gmf"),
     "ncf_mlp": lambda: NCF("mlp"),
     "ncf_neumf": lambda: NCF("neumf"),
@@ -29,6 +30,9 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     "lightgcn_l1": LightGCN,  # layer ablation: lightgcn's tuned config with n_layers overridden
     "lightgcn_l2": LightGCN,
     "lightgcn_l4": LightGCN,
+    "lightgcn_init001": LightGCN,  # init ablation: lightgcn's tuned config with N(0, 0.01) init
+    "recbole_ngcf": lambda: RecBoleModel("NGCF"),
+    "recbole_lightgcn": lambda: RecBoleModel("LightGCN"),  # reference check for our lightgcn
 }
 
 

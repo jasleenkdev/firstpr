@@ -70,3 +70,17 @@ def test_ablation_reuses_tuned_config_with_overrides(tmp_path, toy_data):
     assert all(r["config"] == {**best["params"], "shrink": 50} for r in recs)
     with pytest.raises(FileNotFoundError):  # source model never tuned
         final("itemknn", toy_data, {"tuned_from_model": "mf_bpr"}, EVAL, "x", tmp_path)
+
+
+def test_every_model_config_is_registered():
+    from pathlib import Path
+
+    from firstpr.models.registry import MODELS
+    from firstpr.utils.io import load_yaml
+
+    for path in Path("configs/models").glob("*.yaml"):
+        cfg = load_yaml(path)
+        assert cfg["name"] == path.stem, path
+        assert path.stem in MODELS, path
+        if "tuned_from_model" in cfg:
+            assert (path.parent / f"{cfg['tuned_from_model']}.yaml").exists(), path
