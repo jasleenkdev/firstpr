@@ -16,3 +16,7 @@ params:                 # SASRec over frozen text embeddings + linear adapter (u
 search:
   lr: [0.001, 0.002, 0.005]
   dropout: [0.2, 0.5]
+search_extend:
+  amazon_sci:           # best lr 5e-3 / dropout 0.2: corner (+2.3% over lr 2e-3)
+    lr: [0.01]
+    dropout: [0.1]

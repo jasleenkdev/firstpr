@@ -16,3 +16,7 @@ params:                 # SASRec over frozen text embeddings + mlp adapter (use_
 search:
   lr: [0.001, 0.002, 0.005]
   dropout: [0.2, 0.5]
+search_extend:
+  amazon_sci:           # best lr 1e-3 / dropout 0.2: corner (+2% over dropout 0.5)
+    lr: [0.0005]
+    dropout: [0.1]
