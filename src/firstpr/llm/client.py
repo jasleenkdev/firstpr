@@ -3,7 +3,7 @@
 Backends (free only): a local Ollama server (default) or Groq's free tier (OpenAI-compatible
 API, key from the GROQ_API_KEY environment variable). Responses are appended to one JSONL file
 per model under `data/llm_cache/`, keyed by a sha256 of the request. Prompts must never contain
-user names, emails or profile text (CLAUDE.md privacy rules): callers pass item text only.
+user names, emails or profile text (privacy rule): callers pass item text only.
 """
 
 import hashlib
