@@ -39,6 +39,9 @@ def test_hash_column_replaces_raw_ids():
 def test_find_leaks_and_assert_hashed():
     df = pd.DataFrame({"user": ["Octocat", "x"], "repo": ["octocat/hello", "a/b"]})
     assert find_leaks(df, {"octocat"}) == ["user"]  # repo names are not exact matches
+    nums = pd.DataFrame({"item": [100, 2], "user": ["ab", "100"]})
+    assert find_leaks(nums, {"100"}) == ["item", "user"]
+    assert find_leaks(nums, {"100"}, text_only=True) == ["user"]
     with pytest.raises(ValueError):
         assert_hashed(df["user"])
 
@@ -81,10 +84,10 @@ def test_processed_github_data_holds_no_logins():
         assert_hashed(users["raw_id"])
         for name in ("train", "val", "test", "user_map"):
             frame = pd.read_parquet(d / f"{name}.parquet")
-            assert not find_leaks(frame, owners), f"{d.name}/{name}"
+            assert not find_leaks(frame, owners, text_only=True), f"{d.name}/{name}"
         text = pd.read_parquet(d / "items.parquet")["text"]
         assert not text.str.contains(r"https?://|[\w.+-]+@[\w-]+\.[\w.-]+", regex=True).any()
-        mentions = text.str.findall(r"(?<![\w.])@([A-Za-z0-9-]+)").explode().dropna()
+        mentions = text.str.findall(r"(?<![\w.])@([A-Za-z0-9][A-Za-z0-9-]*)").explode().dropna()
         assert set(mentions) <= {"user"}
 
 

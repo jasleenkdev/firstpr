@@ -40,12 +40,19 @@ def hash_column(df: pd.DataFrame, column: str, salt: bytes, out: str = "user") -
     return df.drop(columns=column).assign(**{out: hashed})
 
 
-def find_leaks(df: pd.DataFrame, forbidden: set[str], skip: Iterable[str] = ()) -> list[str]:
-    """Columns (other than `skip`) holding any value from `forbidden` (case-insensitive)."""
+def find_leaks(
+    df: pd.DataFrame, forbidden: set[str], skip: Iterable[str] = (), text_only: bool = False
+) -> list[str]:
+    """Columns (other than `skip`) holding any value from `forbidden` (case-insensitive).
+    `text_only` scans string columns only (for logins: some are all digits, like ids)."""
     lowered = {f.lower() for f in forbidden}
     bad = []
     for col in df.columns:
         if col in skip:
+            continue
+        if text_only and not (
+            pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_string_dtype(df[col])
+        ):
             continue
         values = df[col].dropna()
         if values.empty:
@@ -67,7 +74,7 @@ _MENTION = re.compile(r"(?<![\w.])@[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})")
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 _MD_IMAGE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 _MD_LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
-_URL = re.compile(r"https?://\S+|www\.\S+")
+_URL = re.compile(r"https?://\S*|www\.\S+")
 _HTML = re.compile(r"<[^>]+>")
 _CODE_FENCE = re.compile(r"```.*?```", re.S)
 
