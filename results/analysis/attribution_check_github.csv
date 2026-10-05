@@ -1,0 +1,5 @@
+type,maintainer,pairs,share_authored,events
+IssuesEvent,False,46701,0.8236,86909.0000
+IssuesEvent,True,10302,0.4000,80614.0000
+PullRequestEvent,False,28455,0.9332,52147.0000
+PullRequestEvent,True,16322,0.8236,117705.0000
