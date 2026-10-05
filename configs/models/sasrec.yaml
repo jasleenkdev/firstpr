@@ -21,7 +21,13 @@ search:
 params_override:        # per-dataset defaults (part of the tuned config on that dataset only)
   amazon_sci:
     max_len: 50         # Amazon histories: median 7, max 115 train items; 200 was 4x slower
+  github:
+    max_len: 50         # GitHub train histories are short (see stats.json)
 search_extend:
   amazon_sci:           # best lr 2e-3 / dropout 0.5 at the top dropout edge (+7.6% over 0.2)
     dropout: [0.7, 0.8, 0.9]  # -> extended (val only); 0.7 won again (+2.6%) -> 0.8;
                               # 0.8 won (+1.07%) -> 0.9
+search_override:        # GitHub: lr over 3 orders of magnitude x dropout low / mid / high
+  github:
+    lr: [0.0001, 0.001, 0.01]
+    dropout: [0.1, 0.5, 0.9]

@@ -8,3 +8,7 @@ search:          # grid tuned on val NDCG@20 (Dacrema et al., RecSys 2019: tune 
 search_extend:          # per-dataset edge extensions (val only)
   amazon_sci:           # grid 1 best k=200/shrink=100 (shrink edge +2.2%; k edge +0.7% -> stop)
     shrink: [200, 500]
+search_override:        # GitHub: wide log-spaced initial grid (3 orders of magnitude each)
+  github:
+    k: [10, 30, 100, 300, 1000]
+    shrink: [0, 1, 10, 100, 1000]

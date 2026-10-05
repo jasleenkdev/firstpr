@@ -19,3 +19,7 @@ search:   # lr 1e-3 dropped: at batch 8192 it sat on the popularity plateau (val
 search_extend:
   amazon_sci:           # grid 1 best lr 1e-2 / reg 1e-3 (lr edge, +1.2%) -> lr 2e-2 added
     lr: [0.02]
+search_override:        # GitHub: reg over 3 orders; lr 1e-4 left out (phase 3: lr <= 1e-3 at
+  github:               # batch 8192 stays on the popularity plateau and burns the epoch budget)
+    lr: [0.001, 0.01, 0.1]
+    reg: [0.00001, 0.0001, 0.001, 0.01]
