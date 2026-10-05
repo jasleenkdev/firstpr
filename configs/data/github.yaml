@@ -34,7 +34,9 @@ scoping:
 preprocess:
   types: [star, fork, pr, issue, comment, review]   # interaction kinds kept (binary, first touch)
   k_core: 5                  # iterative, on train pairs only (users and items)
-  max_user_items: 1000       # users touching more repos in the window are dropped (star farms)
+  max_user_items: 1000       # users touching more repos in train are dropped (star farms)
+  max_users: 30000           # seeded uniform sample of the 521k core users (CPU budget), core re-applied
+  sample_seed: 0
 split:
   tie_break_seed: 0          # same-second events of a user ordered randomly (seeded)
   contrib_variant: true      # also write <processed_dir>_contrib: same train, val/test targets

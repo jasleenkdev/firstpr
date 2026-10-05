@@ -59,6 +59,23 @@ def test_global_split_core_ignores_future():
     assert 6 not in set(s.train["user"]) and s.test.empty
 
 
+def test_global_split_user_sample_keeps_core():
+    rng = np.random.default_rng(0)
+    rows = [(u, int(i), int(t)) for u in range(200) for t, i in enumerate(rng.choice(30, 8, False))]
+    full = global_temporal_split(_toy(rows), 100, 200, k_core=5, tie_break_seed=0)
+    s = global_temporal_split(_toy(rows), 100, 200, 5, 0, max_users=50, sample_seed=1)
+    assert s.train["user"].nunique() <= 50 < full.train["user"].nunique()
+    assert s.train.groupby("user").size().min() >= 5
+    assert s.train.groupby("item").size().min() >= 5
+    again = global_temporal_split(_toy(rows), 100, 200, 5, 0, max_users=50, sample_seed=1)
+    assert again.train.equals(s.train)
+
+
+def test_item_text_handles_missing_metadata():
+    row = pd.Series({"name": "o/r", "language": None, "description": np.nan, "readme": np.nan})
+    assert build.item_text(row, 100, 100) == "Repository: r"
+
+
 def _write_events(tmp_path, rows):
     ev = pd.DataFrame(rows, columns=["kind", "user", "repo_id", "first_at", "n"])
     ev["first_at"] = pd.to_datetime(ev["first_at"], utc=True)

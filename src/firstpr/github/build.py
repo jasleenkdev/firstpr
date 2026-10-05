@@ -103,12 +103,17 @@ def maintainer_share(cfg: dict[str, Any], repo_ids: list[int]) -> dict[str, floa
 def item_text(row: pd.Series, readme_chars: int, description_chars: int) -> str:
     """Repo text from facts on the repo page: name, language, description, README (as of the
     train cutoff), cleaned of URLs, emails, @mentions and code blocks."""
-    parts = [f"Repository: {row['name'].split('/')[-1]}"]
-    if row.get("language"):
-        parts.append(f"Language: {row['language']}")
-    if desc := scrub_text(row.get("description") or "", description_chars):
+
+    def field(key: str) -> str:
+        v = row.get(key)
+        return v if isinstance(v, str) else ""  # missing metadata arrives as None / NaN
+
+    parts = [f"Repository: {field('name').split('/')[-1]}"]
+    if lang := field("language"):
+        parts.append(f"Language: {lang}")
+    if desc := scrub_text(field("description"), description_chars):
         parts.append(f"Description: {desc}")
-    if readme := scrub_text(row.get("readme") or "", readme_chars):
+    if readme := scrub_text(field("readme"), readme_chars):
         parts.append(f"README: {readme}")
     return "\n".join(parts)
 

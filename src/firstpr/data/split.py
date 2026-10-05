@@ -64,6 +64,8 @@ def global_temporal_split(
     k_core: int,
     tie_break_seed: int,
     keep_cold_items: set[int] | None = None,
+    max_users: int | None = None,
+    sample_seed: int = 0,
 ) -> SplitResult:
     """One global cutoff for everyone (Meng et al., RecSys 2020): train = t < val_start,
     val = val_start <= t < test_start, test = t >= test_start (timestamps in seconds).
@@ -72,11 +74,18 @@ def global_temporal_split(
     Val / test keep users that survive it and items that survive it or are listed in
     `keep_cold_items` (new items with no train interactions: the cold slice). Users with no val
     or test pair simply have no targets there; pairs already in train are dropped from val/test.
+    `max_users`: a seeded uniform sample of the users that survive the core (CPU budget), then
+    the core is applied again so every kept user and item still has k train interactions.
     """
     df = chronological_order(df, tie_break_seed)
     t = df["timestamp"].to_numpy()
     part = np.where(t < val_start, 0, np.where(t < test_start, 1, 2))
     train = apply_k_core(df.loc[part == 0], k_core)
+    if max_users is not None and train["user"].nunique() > max_users:
+        pool = np.sort(train["user"].unique())
+        keep = np.random.default_rng(sample_seed).choice(pool, max_users, replace=False)
+        train = apply_k_core(train.loc[train["user"].isin(keep)], k_core)
+        log.info("sampled %d of %d core users (seed %d)", max_users, len(pool), sample_seed)
     users = set(train["user"])
     items = set(train["item"]) | set(keep_cold_items or ())
     seen = set(zip(train["user"], train["item"], strict=True))

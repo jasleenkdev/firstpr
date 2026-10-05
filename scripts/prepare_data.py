@@ -42,6 +42,8 @@ def github_split(cfg: dict) -> tuple[SplitResult, pd.DataFrame, pd.DataFrame, pd
         cfg["preprocess"]["k_core"],
         cfg["split"]["tie_break_seed"],
         keep_cold_items=cold,
+        max_users=cfg["preprocess"].get("max_users"),
+        sample_seed=cfg["preprocess"].get("sample_seed", 0),
     )
     split, user_map, item_map = remap_split(split)
     item_map = item_map.merge(
