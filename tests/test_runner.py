@@ -94,6 +94,18 @@ def test_search_extend_is_per_dataset():
     assert search_space(cfg, "b") == {"k": [1, 2], "s": [0, 5]}
 
 
+def test_search_override_replaces_grid_for_one_dataset():
+    from firstpr.train.runner import search_space
+
+    cfg = {
+        "search": {"k": [1, 2]},
+        "search_override": {"b": {"k": [10, 100], "s": [0, 1]}},
+        "search_extend": {"b": {"s": [10]}},
+    }
+    assert search_space(cfg, "a") == {"k": [1, 2]}
+    assert search_space(cfg, "b") == {"k": [10, 100], "s": [0, 1, 10]}
+
+
 def test_params_override_is_per_dataset(tmp_path, toy_data):
     from firstpr.train.runner import tune
 

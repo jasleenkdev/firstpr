@@ -38,8 +38,10 @@ def expand_grid(params: dict[str, Any], search: dict[str, list[Any]]) -> list[di
 def search_space(model_cfg: dict[str, Any], dataset: str) -> dict[str, list[Any]]:
     """The model's `search` grid, with per-dataset extensions from `search_extend: {dataset:
     {param: [extra values]}}` (edge extensions decided on one dataset's val set must not change
-    the grid another dataset was tuned on)."""
-    search = {k: list(v) for k, v in model_cfg.get("search", {}).items()}
+    the grid another dataset was tuned on). `search_override: {dataset: grid}` replaces the base
+    grid for one dataset (e.g. wider log-spaced initial grids on GitHub)."""
+    base = model_cfg.get("search_override", {}).get(dataset, model_cfg.get("search", {}))
+    search = {k: list(v) for k, v in base.items()}
     for key, extra in model_cfg.get("search_extend", {}).get(dataset, {}).items():
         search[key] = sorted(set(search.get(key, [])) | set(extra))
     return search

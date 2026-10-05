@@ -19,6 +19,11 @@ def main() -> None:
         default=None,
         help="use the data variant prepared with this tie-break seed (robustness check)",
     )
+    p.add_argument(
+        "--variant",
+        default=None,
+        help="data variant <processed_dir>_<variant> (e.g. contrib); reuses the main tuned config",
+    )
     p.add_argument("--force", action="store_true", help="allow re-running test for a config")
     p.add_argument("--results-dir", default="results")
     a = p.parse_args()
@@ -30,6 +35,8 @@ def main() -> None:
     processed, dataset = data_cfg["processed_dir"], data_cfg["name"]
     if a.tie_break_seed is not None and a.tie_break_seed != data_cfg["split"]["tie_break_seed"]:
         processed, dataset = f"{processed}_tb{a.tie_break_seed}", f"{dataset}_tb{a.tie_break_seed}"
+    if a.variant:
+        processed, dataset = f"{processed}_{a.variant}", f"{dataset}_{a.variant}"
     data = InteractionData.from_processed(processed, head_fraction=data_cfg["head_fraction"])
 
     results = Path(a.results_dir)
