@@ -1,0 +1,18 @@
+# LLM feature engineering for FirstPR (Groq free tier; every response cached)
+backend: groq
+repo_model: openai/gpt-oss-20b      # README summary + skills + domain (~530 tokens/call measured)
+issue_model: openai/gpt-oss-120b    # issue difficulty + skills + evidence quote (separate daily quota)
+options:
+  temperature: 0
+  num_predict: 600                  # max completion tokens (reasoning + JSON)
+  reasoning_effort: low
+  json: true
+readme_max_chars: 1500              # same cleaned text the text encoder sees
+issue_body_max_chars: 400
+issues_per_call: 5                  # issues of one repo rated in one call
+issues_per_repo: 5                  # newest open beginner issues per repo
+# priority: beginner repos with >= 1 open beginner issue, most external contributors first.
+# Free tier ~200k tokens/day/model -> ~350 repo calls or ~160 issue calls (~800 issues) per day.
+max_repos: 1500
+grounding_sample: 30                # outputs checked by hand (15 repo, 15 issue), seed 0
+seed: 0
