@@ -82,3 +82,28 @@ def test_kar_paths_run(monkeypatch):
     cfg = {**SMALL, "adapter": "linear", "use_id": True, "item_knowledge": True}
     model.fit(data, {**cfg, "user_preference": True, "max_epochs": 2})
     assert model.score(np.arange(5)).shape == (5, 61)
+
+
+def test_cold_negatives_false_keeps_cold_items_out_of_the_training_softmax(monkeypatch):
+    data, text = _clusters_with_cold_item()
+    monkeypatch.setattr(st, "text_matrix", lambda d, file, key, n, enc: text)
+    adam = torch.optim.Adam
+    snapshots: list[torch.Tensor] = []
+
+    def snapshot_adam(params, **kw):  # copy the ID table as initialised, before training
+        params = list(params)
+        snapshots.append(next(p for p in params if p.shape == (62, 16)).detach().clone())
+        return adam(params, **kw)
+
+    monkeypatch.setattr(st.torch.optim, "Adam", snapshot_adam)
+    cfg = {**SMALL, "adapter": "linear", "use_id": True, "max_epochs": 3}
+    moved = {}
+    for flag in (True, False):
+        set_seed(0)
+        model = TextSASRec()
+        model.fit(data, {**cfg, "cold_negatives": flag})
+        row = 60 + 1  # item 60 is cold; row 0 is padding
+        w = model.module.item_emb.id_emb.weight[row].detach()
+        moved[flag] = float((w - snapshots[-1][row]).abs().max())
+    assert moved[True] > 0  # pushed down as a negative
+    assert moved[False] == 0  # never in the softmax, never in an input sequence

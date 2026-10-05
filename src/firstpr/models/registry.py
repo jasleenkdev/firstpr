@@ -38,6 +38,8 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     **{f"sasrec_text_{a}{i}": TextSASRec for a in ("linear", "mlp", "moe") for i in ("", "_id")},
     "sasrec_text_kar_item": TextSASRec,
     "sasrec_text_kar": TextSASRec,
+    "sasrec_text_moe_warm": TextSASRec,
+    "sasrec_text_linear_id_warm": TextSASRec,
 }
 
 

@@ -1,0 +1,5 @@
+name: sasrec_text_moe_warm
+tuned_from_model: sasrec_text_moe  # ablation: tuned config, softmax over warm items only
+overrides:
+  cold_negatives: false  # items with no train interactions are never pushed down as negatives
+                         # (they were scored below random with the full-catalog softmax)

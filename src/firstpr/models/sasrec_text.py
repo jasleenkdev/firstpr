@@ -14,6 +14,11 @@ history; its embedding goes through a gated-expert adapter and is added to the f
 state. To avoid leaking the training target, the preference is generated from the train history
 *without its last item*; training applies the user term only at the last position, whose target
 (the last train item) the LLM never saw. At scoring time the same preference is used.
+
+`cold_negatives: false` restricts the training softmax to items with train interactions. With
+the full catalog, items that are never a training target are pushed down as negatives at every
+step, which a real system cannot do to an item that arrives after training (ZESRec / UniSRec's
+inductive setting scores new items that training never saw). Scoring always covers every item.
 """
 
 from pathlib import Path
@@ -129,6 +134,12 @@ class TextSASRec(Recommender):
         keep = (targets != PAD).any(axis=1)
         inputs, targets, users = inputs[keep], targets[keep], users[keep]
 
+        softmax_items = torch.arange(data.n_items)
+        if not config.get("cold_negatives", True):
+            softmax_items = torch.from_numpy(np.flatnonzero(data.item_popularity > 0))
+        to_softmax = torch.full((data.n_items,), -1, dtype=torch.long)
+        to_softmax[softmax_items] = torch.arange(len(softmax_items))
+
         opt = torch.optim.Adam(self.module.parameters(), lr=float(config["lr"]), betas=(0.9, 0.98))
         batch_size = int(config["batch_size"])
 
@@ -145,8 +156,8 @@ class TextSASRec(Recommender):
                     last[:, -1, :] = self.user_vec(torch.from_numpy(users[b]))
                     h = h + last
                 valid = y != PAD
-                items = self.module.item_emb.weight[1:]
-                loss = F.cross_entropy(h[valid] @ items.T, y[valid] - 1)
+                items = self.module.item_emb.weight[1:][softmax_items]
+                loss = F.cross_entropy(h[valid] @ items.T, to_softmax[y[valid] - 1])
                 opt.zero_grad()
                 loss.backward()
                 opt.step()
