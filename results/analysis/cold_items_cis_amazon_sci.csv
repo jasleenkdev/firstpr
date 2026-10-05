@@ -1,0 +1,12 @@
+model_a,model_b,metric,diff,ci_low,ci_high,p_not_positive,n_users
+sasrec_text_moe,sasrec,cold_ndcg@20,0.00176734,0.000273413,0.0040155,0.015,287
+sasrec_text_mlp,sasrec,cold_ndcg@20,0.00128889,0,0.00386667,0.129,287
+sasrec_text_linear,sasrec,cold_ndcg@20,0.00399862,0.00141851,0.00693599,0,287
+sasrec_text_linear_id,sasrec,cold_ndcg@20,0,0,0,1,287
+sasrec_text_moe_id,sasrec,cold_ndcg@20,0,0,0,1,287
+sasrec_text_moe,sasrec_text_moe_id,cold_ndcg@20,0.00176734,0.000273413,0.0040155,0.015,287
+sasrec_text_kar,sasrec_text_linear_id,cold_ndcg@20,0,0,0,1,287
+sasrec_text_kar_item,sasrec_text_linear_id,cold_ndcg@20,0,0,0,1,287
+sasrec_text_moe_warm,sasrec_text_moe,cold_ndcg@20,0.0069453,0.00325637,0.0110744,0,287
+sasrec_text_linear_id_warm,sasrec_text_linear_id,cold_ndcg@20,0.000268732,0,0.000806196,0.371,287
+sasrec_text_moe_warm,sasrec,cold_ndcg@20,0.00871265,0.00394555,0.0145237,0,287

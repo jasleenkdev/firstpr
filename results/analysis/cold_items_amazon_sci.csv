@@ -1,0 +1,16 @@
+model,cold_ndcg@20,cold_recall@20,n_users
+popularity,0,,287
+itemknn,0,,287
+mf_bpr,0,,287
+sasrec,0,,287
+lightgcn,0,,287
+sasrec_text_linear,0.00399862,,287
+sasrec_text_linear_id,0,,287
+sasrec_text_mlp,0.00128889,,287
+sasrec_text_mlp_id,0,,287
+sasrec_text_moe,0.00176734,,287
+sasrec_text_moe_id,0,,287
+sasrec_text_kar_item,0,,287
+sasrec_text_kar,0,,287
+sasrec_text_moe_warm,0.00871265,,287
+sasrec_text_linear_id_warm,0.000268732,,287
