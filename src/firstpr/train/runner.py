@@ -47,6 +47,15 @@ def search_space(model_cfg: dict[str, Any], dataset: str) -> dict[str, list[Any]
     return search
 
 
+def search_points(
+    model_cfg: dict[str, Any], dataset: str, params: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Explicit extra configs for one dataset (`search_points: {dataset: [{param: value}]}`),
+    each merged over the default params: a refinement round evaluates the neighbours of the
+    best config without the full product grid."""
+    return [{**params, **pt} for pt in model_cfg.get("search_points", {}).get(dataset, [])]
+
+
 def run_single(
     model_name: str,
     data: InteractionData,
@@ -146,6 +155,11 @@ def tune(
         **model_cfg.get("params_override", {}).get(dataset, {}),
     }
     grid = expand_grid(params, search_space(model_cfg, dataset))
+    seen = {config_hash(g) for g in grid}
+    for pt in search_points(model_cfg, dataset, params):
+        if config_hash(pt) not in seen:  # a point already in the grid is not run twice
+            seen.add(config_hash(pt))
+            grid.append(pt)
     seed = eval_cfg["tune_seed"]
     log.info("tuning %s on %s: %d configs", model_name, dataset, len(grid))
     records = []

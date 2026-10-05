@@ -122,3 +122,14 @@ def test_load_runs_skips_quarantined_records(tmp_path):
     for sub in ("ds/m", "_dirty/ds/m", "_interrupted/ds/m"):
         save_json({"mode": "test", "model": "m"}, tmp_path / "runs" / sub / "test_x_s0_1.json")
     assert len(load_runs(tmp_path, "test")) == 1
+
+
+def test_search_points_add_configs_once():
+    from firstpr.train.runner import search_points
+
+    cfg = {"search_points": {"b": [{"lr": 0.3}, {"lr": 0.1, "reg": 2}]}}
+    assert search_points(cfg, "a", {"lr": 1}) == []
+    assert search_points(cfg, "b", {"lr": 1, "reg": 0}) == [
+        {"lr": 0.3, "reg": 0},
+        {"lr": 0.1, "reg": 2},
+    ]
