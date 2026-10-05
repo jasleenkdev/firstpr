@@ -12,3 +12,8 @@ search_override:        # GitHub: wide log-spaced initial grid (3 orders of magn
   github:
     k: [10, 30, 100, 300, 1000]
     shrink: [0, 1, 10, 100, 1000]
+search_points:          # refinement round (val only): half-step neighbours of the grid best
+  github:               # (k 1000 / shrink 10)
+    - {k: 3000, shrink: 10}
+    - {k: 1000, shrink: 3}
+    - {k: 1000, shrink: 30}

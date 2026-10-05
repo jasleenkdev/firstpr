@@ -23,3 +23,9 @@ search_override:        # GitHub: reg over 3 orders; lr 1e-4 left out (phase 3: 
   github:               # batch 8192 stays on the popularity plateau and burns the epoch budget)
     lr: [0.001, 0.01, 0.1]
     reg: [0.00001, 0.0001, 0.001, 0.01]
+search_points:          # refinement round (val only): half-decade neighbours of lr 1e-2 / reg 1e-3
+  github:
+    - {lr: 0.003, reg: 0.001}
+    - {lr: 0.03, reg: 0.001}
+    - {lr: 0.01, reg: 0.0003}
+    - {lr: 0.01, reg: 0.003}

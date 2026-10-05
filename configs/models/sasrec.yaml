@@ -31,3 +31,9 @@ search_override:        # GitHub: lr over 3 orders of magnitude x dropout low / 
   github:
     lr: [0.0001, 0.001, 0.01]
     dropout: [0.1, 0.5, 0.9]
+search_points:          # refinement round (val only): neighbours of lr 1e-2 / dropout 0.1 (a corner:
+  github:               # lr 3e-2 and dropout 0.0 double as the edge extensions)
+    - {lr: 0.003, dropout: 0.1}
+    - {lr: 0.03, dropout: 0.1}
+    - {lr: 0.01, dropout: 0.0}
+    - {lr: 0.01, dropout: 0.3}

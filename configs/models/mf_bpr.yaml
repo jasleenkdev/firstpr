@@ -24,3 +24,9 @@ search_override:        # GitHub: decades over 3 orders of magnitude, refined la
   github:
     lr: [0.0001, 0.001, 0.01, 0.1]
     reg: [0.0001, 0.001, 0.01, 0.1]
+search_points:          # refinement round (val only): half-decade neighbours of lr 1e-3 / reg 1e-2
+  github:
+    - {lr: 0.0003, reg: 0.01}
+    - {lr: 0.003, reg: 0.01}
+    - {lr: 0.001, reg: 0.003}
+    - {lr: 0.001, reg: 0.03}
