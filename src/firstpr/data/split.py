@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from firstpr.data.preprocess import k_core as apply_k_core
 from firstpr.utils.logging import get_logger
 
 log = get_logger(__name__)
@@ -54,6 +55,49 @@ def chronological_order(df: pd.DataFrame, tie_break_seed: int) -> pd.DataFrame:
     df = df.reset_index(drop=True)
     df["seq"] = df.groupby("user").cumcount().astype(np.int64)
     return df
+
+
+def global_temporal_split(
+    df: pd.DataFrame,
+    val_start: int,
+    test_start: int,
+    k_core: int,
+    tie_break_seed: int,
+    keep_cold_items: set[int] | None = None,
+) -> SplitResult:
+    """One global cutoff for everyone (Meng et al., RecSys 2020): train = t < val_start,
+    val = val_start <= t < test_start, test = t >= test_start (timestamps in seconds).
+
+    The k-core filter runs on train pairs only (no future information decides who stays).
+    Val / test keep users that survive it and items that survive it or are listed in
+    `keep_cold_items` (new items with no train interactions: the cold slice). Users with no val
+    or test pair simply have no targets there; pairs already in train are dropped from val/test.
+    """
+    df = chronological_order(df, tie_break_seed)
+    t = df["timestamp"].to_numpy()
+    part = np.where(t < val_start, 0, np.where(t < test_start, 1, 2))
+    train = apply_k_core(df.loc[part == 0], k_core)
+    users = set(train["user"])
+    items = set(train["item"]) | set(keep_cold_items or ())
+    seen = set(zip(train["user"], train["item"], strict=True))
+
+    def restrict(frame: pd.DataFrame) -> pd.DataFrame:
+        frame = frame.loc[frame["user"].isin(users) & frame["item"].isin(items)]
+        pairs = list(zip(frame["user"], frame["item"], strict=True))
+        return frame.loc[[p not in seen for p in pairs]].reset_index(drop=True)
+
+    val, test = restrict(df.loc[part == 1]), restrict(df.loc[part == 2])
+    log.info(
+        "global split: train=%d (%d users, %d items) val=%d (%d users) test=%d (%d users)",
+        len(train),
+        len(users),
+        train["item"].nunique(),
+        len(val),
+        val["user"].nunique(),
+        len(test),
+        test["user"].nunique(),
+    )
+    return SplitResult(train.reset_index(drop=True), val, test, n_short_users=0)
 
 
 def chronological_split(
