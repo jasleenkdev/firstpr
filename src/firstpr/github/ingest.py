@@ -6,6 +6,7 @@ raw ids, then written to `<github_dir>/events/<YYYY-MM-DD>.parquet`. Existing da
 so the same command backfills a range or appends yesterday.
 """
 
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,7 @@ from typing import Any
 import pandas as pd
 
 from firstpr.github import gharchive as gha
-from firstpr.github.bigquery import BigQueryRunner
+from firstpr.github.bigquery import BigQueryRunner, BudgetExceededError
 from firstpr.github.privacy import assert_hashed, find_leaks, hash_column, load_salt
 from firstpr.utils.disk import check_disk
 from firstpr.utils.logging import get_logger
@@ -21,12 +22,16 @@ from firstpr.utils.logging import get_logger
 log = get_logger(__name__)
 
 
+NON_ID_COLUMNS = ("repo_id", "n", "number")  # numbers that can equal an actor id by chance
+
+
 def anonymise(df: pd.DataFrame, salt: bytes) -> pd.DataFrame:
-    """actor_id -> user (salted hash); raises if a raw actor id survives in any column."""
+    """actor_id -> user (salted hash); raises if a raw actor id survives in any column other
+    than repo ids, counts and issue / PR numbers."""
     raw = set(df["actor_id"].astype(str))
     out = hash_column(df, "actor_id", salt, out="user")
     assert_hashed(out["user"])
-    leaks = find_leaks(out, raw, skip=("repo_id", "n"))
+    leaks = find_leaks(out, raw, skip=NON_ID_COLUMNS)
     if leaks:
         raise RuntimeError(f"raw actor ids found in columns {leaks}")
     return out
@@ -55,6 +60,30 @@ def ingest_day(
     return len(df)
 
 
+def ingest_day_retry(
+    day: pd.Timestamp,
+    repo_ids: list[int],
+    cfg: dict[str, Any],
+    bq: BigQueryRunner,
+    salt: bytes,
+    attempts: int = 4,
+) -> int:
+    """`ingest_day` with backoff on transient network / API errors (budget errors are raised)."""
+    for k in range(attempts):
+        try:
+            return ingest_day(day, repo_ids, cfg, bq, salt)
+        except BudgetExceededError:
+            raise
+        except Exception as e:  # noqa: BLE001 - transport errors come in many types
+            if k == attempts - 1:
+                raise
+            log.warning(
+                "day %s failed (%s), retry in %ds", f"{day:%Y-%m-%d}", type(e).__name__, 30 * 2**k
+            )
+            time.sleep(30 * 2**k)
+    return 0
+
+
 def ingest_range(
     start: str, end: str, repo_ids: list[int], cfg: dict[str, Any], workers: int = 4
 ) -> None:
@@ -69,7 +98,9 @@ def ingest_range(
     done = 0
     with ThreadPoolExecutor(max_workers=workers) as pool:
         for d, n in zip(
-            todo, pool.map(lambda d: ingest_day(d, repo_ids, cfg, bq, salt), todo), strict=True
+            todo,
+            pool.map(lambda d: ingest_day_retry(d, repo_ids, cfg, bq, salt), todo),
+            strict=True,
         ):
             done += 1
             log.info("day %s: %d rows (%d/%d)", f"{d:%Y-%m-%d}", n, done, len(todo))

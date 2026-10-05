@@ -206,9 +206,10 @@ class GraphQLClient:
         out: dict[int, list[str]] = {}
 
         def field(labels: list[str]) -> str:
+            names = json.dumps(labels, ensure_ascii=False)  # raw UTF-8: emoji labels
             return (
                 f"issues(first: {per_repo}, orderBy: {{field: CREATED_AT, direction: ASC}}, "
-                f'filterBy: {{since: "{since}T00:00:00Z", labels: {json.dumps(labels)}}}) '
+                f'filterBy: {{since: "{since}T00:00:00Z", labels: {names}}}) '
                 "{ nodes { createdAt } }"
             )
 
@@ -276,7 +277,7 @@ class GraphQLClient:
             return (
                 f"issues(first: {per_repo}, states: OPEN, "
                 "orderBy: {field: CREATED_AT, direction: DESC}, "
-                f"filterBy: {{labels: {json.dumps(labels)}}}) "
+                f"filterBy: {{labels: {json.dumps(labels, ensure_ascii=False)}}}) "
                 "{ nodes { number title body createdAt updatedAt "
                 "labels(first: 10) { nodes { name } } comments { totalCount } "
                 "assignees { totalCount } } }"
