@@ -44,3 +44,19 @@ def test_client_cache_avoids_second_call(tmp_path, monkeypatch):
     assert len(calls) == 1
     c2 = LLMClient("m", cache_dir=tmp_path)  # cache persists on disk
     assert c2.cached("hi", {"temperature": 0}) == "out"
+
+
+def test_groq_invalid_json_returns_raw_generation(tmp_path, monkeypatch):
+    import requests
+
+    class Resp:
+        status_code = 400
+        headers: dict = {}
+
+        def json(self):
+            return {"error": {"code": "json_validate_failed", "failed_generation": "{broken"}}
+
+    monkeypatch.setenv("GROQ_API_KEY", "x")
+    monkeypatch.setattr(requests, "post", lambda *a, **k: Resp())
+    c = LLMClient("m", backend="groq", cache_dir=tmp_path)
+    assert c.generate("p", {"json": True}) == "{broken"

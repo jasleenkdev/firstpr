@@ -127,6 +127,10 @@ class LLMClient:
                 if r.status_code >= 500:
                     time.sleep(2**attempt)
                     continue
+                if r.status_code == 400 and options.get("json"):
+                    err = r.json().get("error") or {}
+                    if err.get("code") == "json_validate_failed":  # invalid JSON from the model:
+                        return err.get("failed_generation") or ""  # keep the raw text
                 r.raise_for_status()
                 out = r.json()
                 self.last_usage = out.get("usage", {})
