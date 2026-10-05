@@ -29,3 +29,6 @@ search_points:          # refinement round (val only): half-decade neighbours of
     - {lr: 0.03, reg: 0.001}
     - {lr: 0.01, reg: 0.0003}
     - {lr: 0.01, reg: 0.003}
+    # round 2 (best moved >= 1% to lr 3e-3 / reg 1e-3): its missing reg neighbours
+    - {lr: 0.003, reg: 0.0003}
+    - {lr: 0.003, reg: 0.003}
