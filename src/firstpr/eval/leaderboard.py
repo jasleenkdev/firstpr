@@ -8,6 +8,7 @@ import pandas as pd
 
 METRICS = ["recall@20", "ndcg@20", "hit@20", "coverage@20", "avg_pop@20", "long_tail_share@20"]
 SLICE_METRICS = [("tail", "recall@20"), ("head", "recall@20")]
+OPTIONAL_SLICE_METRICS = [("cold", "recall@20"), ("cold", "ndcg@20")]  # datasets with cold items
 
 
 def select_final_runs(runs: list[dict[str, Any]]) -> dict[tuple[str, str], list[dict[str, Any]]]:
@@ -42,6 +43,9 @@ def aggregate(runs: list[dict[str, Any]], model_order: list[str]) -> pd.DataFram
         values = {m: [r["metrics"]["overall"][m] for r in rs] for m in METRICS}
         for s, m in SLICE_METRICS:
             values[f"{s}_{m}"] = [r["metrics"]["slices"][s][m] for r in rs]
+        for s, m in OPTIONAL_SLICE_METRICS:
+            if all(s in r["metrics"]["slices"] for r in rs):
+                values[f"{s}_{m}"] = [r["metrics"]["slices"][s][m] for r in rs]
         values["train_time_s"] = [r["train_time_s"] for r in rs]
         for name, v in values.items():
             arr = np.asarray(v, dtype=float)
