@@ -1,0 +1,35 @@
+{
+  "config": {
+    "backend": "ollama",
+    "bootstrap": {
+      "ci": 0.95,
+      "n_resamples": 1000,
+      "seed": 0
+    },
+    "k": 10,
+    "max_history": 20,
+    "max_title_chars": 100,
+    "model": "llama3.2:3b",
+    "n_candidates": 20,
+    "n_shuffles": 3,
+    "n_users": 200,
+    "options": {
+      "num_predict": 160,
+      "seed": 0,
+      "temperature": 0
+    },
+    "seed": 0,
+    "workers": 4
+  },
+  "lightgcn20_text": {
+    "missing_ids_per_call": 3.105
+  },
+  "lightgcn20_text_score": {
+    "missing_ids_per_call": 0.305
+  },
+  "n_users": 200,
+  "random20_text": {
+    "missing_ids_per_call": 2.203333333333333
+  },
+  "uncached_calls": 1800
+}
