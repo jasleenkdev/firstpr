@@ -61,12 +61,17 @@ def _chunks(items: list[Any], size: int) -> Iterator[list[Any]]:
 
 
 class GraphQLClient:
-    def __init__(self, cache_path: str | Path, min_remaining: int = 50, workers: int = 3) -> None:
+    def __init__(
+        self, cache_path: str | Path | None, min_remaining: int = 50, workers: int = 3
+    ) -> None:
         """`workers` requests in flight: large batches take ~15 s of server time each, and
-        GitHub's secondary limit allows ~60 s of server time per minute."""
-        self.cache_path = Path(cache_path)
-        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(self.cache_path, check_same_thread=False)
+        GitHub's secondary limit allows ~60 s of server time per minute. `cache_path=None`
+        keeps the cache in memory only (daily refreshes must see today's state)."""
+        if cache_path is None:
+            self.db = sqlite3.connect(":memory:", check_same_thread=False)
+        else:
+            Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
+            self.db = sqlite3.connect(Path(cache_path), check_same_thread=False)
         self.db.execute("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, response TEXT)")
         self._lock = threading.Lock()
         self.min_remaining = min_remaining
