@@ -402,3 +402,47 @@ repos (`gpt-oss-20b`) and difficulty, skills and a quoted evidence span for 1,15
 issues (`gpt-oss-120b`). 99% of repo skills and 82% of issue skills are named in the source text;
 82% of evidence quotes are copied from the issue. A manual check of 30 outputs found 3 grounding
 errors (10%): an inverted fact, a wrong currency and an invented skill.
+
+## Phase 6: the FirstPR app
+
+Live: **https://firstpr-pied.vercel.app** (API: https://firstpr-api.vercel.app/health).
+
+Two ways in:
+
+- **I have GitHub.** Enter a username. The API reads that account's public stars once (the
+  username is hashed immediately and never stored or logged) and feeds the stars that are in the
+  catalog to the phase-5 text-SASRec model. Because it reads README text, the model can score repos
+  it never saw during training and users who were never in the training data. With fewer than three
+  catalog stars it blends in a text profile built from the stars' languages and topics.
+- **New to GitHub.** Pick languages, interests and hours per week. Repos are matched through
+  README embeddings of the chosen interests, language and skill overlap.
+
+Each answer has about 10 repositories, each with up to 3 open beginner issues. Repos come from
+star signals; issues are ranked by difficulty match (hours per week → target difficulty), skill
+match, recency, whether someone is already assigned, and how active outside contributors are in
+the repo. A "New projects" section surfaces repositories created in the last six months with
+fresh beginner issues, which collaborative models cannot reach. "Why this?" asks an LLM to
+rephrase facts the server collects itself (README summary, labels, matching skills, repos you
+starred that share stargazers); if the LLM is unavailable a template built from the same facts
+is shown.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Model | `src/firstpr/serve/build.py` | text-SASRec, MLP adapter, warm-only softmax, retrained on all GitHub data; encoder re-implemented in numpy (no torch at serving time) |
+| API | `src/firstpr/serve/`, `services/api/` | FastAPI on Vercel serverless; 18 MB of artifacts; daily data pulled hourly from a Hugging Face dataset |
+| Frontend | `web/` | Next.js on Vercel |
+| Refresh | `.github/workflows/refresh.yml` | daily: open issues, new repos, LLM features within the free tier |
+
+Measured on the live API (`scripts/measure_latency.py`, 20 accounts, 30 onboarding requests):
+
+| Stage | p50 | p95 |
+|---|---|---|
+| Read GitHub stars (first time) | 1,563 ms | 2,082 ms |
+| Retrieve + rank (GitHub path) | 15 ms | 24 ms |
+| Retrieve + rank (onboarding) | 44 ms | 52 ms |
+| Explanation (LLM) | 241 ms | 525 ms |
+| Whole GitHub request, first time / repeated | 2.05 s / 0.38 s | 2.54 s / 0.61 s |
+
+Exact numpy search over 8,513 repos (0.1–0.3 ms) and 32,728 issues (1.4 ms) is 5–10× faster
+than Qdrant's local mode with identical results, so the API uses numpy only
+(`results/analysis/vector_search_phase6.csv`).
