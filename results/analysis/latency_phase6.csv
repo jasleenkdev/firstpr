@@ -1,0 +1,14 @@
+stage,n,p50,p95
+explain (llm),20,240.9,525.1
+explain: client round trip,20,598.0,883.1
+github: client round trip (cached),20,383.1,609.4
+github: client round trip (cold),20,2050.5,2535.6
+github: fetch_stars (cached),20,0.4,0.5
+github: fetch_stars (cold),20,1563.3,2082.0
+github: retrieve_and_rank,40,15.1,23.6
+github: server total (cached),20,15.6,24.2
+github: server total (cold),20,1580.3,2100.9
+health (first request),1,361.0,361.0
+onboarding: client round trip,30,418.2,843.7
+onboarding: retrieve_and_rank,30,44.5,52.3
+server load_ms (process start),1,646.4,646.4

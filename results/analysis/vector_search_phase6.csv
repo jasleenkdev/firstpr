@@ -1,0 +1,10 @@
+case,engine,n,dim,build_ms,p50_ms,p95_ms,recall@100
+repos_text_384,numpy exact,8513,384,0,0.2652,0.29,1
+repos_text_384,qdrant local (memory),8513,384,344.1,2.42,2.461,1
+repos_text_384,qdrant local (disk),8513,384,7365,2.706,3.683,1
+repos_model_64,numpy exact,8513,64,0,0.102,0.2147,1
+repos_model_64,qdrant local (memory),8513,64,180.6,1.127,1.836,1
+repos_model_64,qdrant local (disk),8513,64,7607,1.101,1.345,1
+issues_text_384,numpy exact,32728,384,0,1.444,1.612,1
+issues_text_384,qdrant local (memory),32728,384,1619,7.975,8.941,0.9999
+issues_text_384,qdrant local (disk),32728,384,3.593e+04,8.11,11.03,0.9999

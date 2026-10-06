@@ -16,6 +16,10 @@ import numpy as np
 import pandas as pd
 import requests
 
+from firstpr.utils.env import require_env
+
+GH = {"Authorization": f"Bearer {require_env('GITHUB_TOKEN')}"}  # authenticated lookups
+
 
 def main() -> None:
     p = argparse.ArgumentParser()
@@ -46,7 +50,7 @@ def main() -> None:
     )
     users = []
     for login in owners:
-        t = requests.get(f"https://api.github.com/users/{login}", timeout=10)
+        t = requests.get(f"https://api.github.com/users/{login}", headers=GH, timeout=10)
         if t.ok and t.json().get("type") == "User":
             users.append(login)
         if len(users) == a.n_users:

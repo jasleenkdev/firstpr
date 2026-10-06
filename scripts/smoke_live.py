@@ -12,6 +12,10 @@ from pathlib import Path
 
 import requests
 
+from firstpr.utils.env import require_env
+
+GH = {"Authorization": f"Bearer {require_env('GITHUB_TOKEN')}"}  # authenticated lookups
+
 
 def main() -> None:
     p = argparse.ArgumentParser()
@@ -51,7 +55,7 @@ def main() -> None:
     owners = [x["name"].split("/")[0] for x in json.loads(Path(a.username_from).read_text())]
     user = None
     for login in dict.fromkeys(owners):
-        t = requests.get(f"https://api.github.com/users/{login}", timeout=10)
+        t = requests.get(f"https://api.github.com/users/{login}", headers=GH, timeout=10)
         if t.ok and t.json().get("type") == "User":
             user = login
             break
