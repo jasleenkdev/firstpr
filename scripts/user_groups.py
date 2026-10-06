@@ -21,6 +21,7 @@ PAIRS = [
     ("sasrec_text_linear_id", "sasrec"),  # amazon: text + ID vs ID only
     ("sasrec_text_moe", "sasrec"),  # amazon: text only vs ID only
     ("sasrec_text_kar", "sasrec_text_linear_id"),  # amazon: KAR on top of its base
+    ("sasrec_text_mlp", "sasrec"),  # github: text only vs ID only
 ]
 
 

@@ -31,6 +31,8 @@ PAIRS = [
     ("sasrec_text_moe_warm", "sasrec_text_moe"),
     ("sasrec_text_linear_id_warm", "sasrec_text_linear_id"),
     ("sasrec_text_moe_warm", "sasrec"),
+    ("sasrec_text_mlp_warm", "sasrec_text_mlp"),  # github: warm-only softmax
+    ("sasrec_text_mlp_warm", "sasrec"),
 ]
 
 
