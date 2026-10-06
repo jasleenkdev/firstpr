@@ -35,6 +35,7 @@ from .github import (
     UserNotFound,
     fetch_stars,
     hash_username,
+    star_activity,
 )
 
 log = logging.getLogger("firstpr.api")
@@ -222,7 +223,12 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
             **out.pop("_timings", {}),
         }
         record("github", timings, n_stars=len(stars), n_repos=len(out["repos"]))
-        return {**out, "timings_ms": timings, "data_updated": cat.manifest.get("updated_at")}
+        return {
+            **out,
+            "activity": star_activity(stars),
+            "timings_ms": timings,
+            "data_updated": cat.manifest.get("updated_at"),
+        }
 
     @app.post("/recommend/onboarding")
     def recommend_onboarding(body: OnboardingRequest, request: Request) -> dict[str, Any]:

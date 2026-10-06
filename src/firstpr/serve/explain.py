@@ -20,8 +20,8 @@ from .catalog import Catalog
 
 PROMPT = """You explain to a student why an open-source repository was recommended for their \
 first contribution. Use ONLY the facts below; do not add any other claim. Write 2 or 3 short \
-sentences in plain English, addressed to the student as "you". Mention the most specific facts \
-(shared stars, matching skills, the issue).
+sentences in plain English, addressed to the student as "you"; never refer to yourself (no "I" \
+or "we"). Mention the most specific facts (shared stars, matching skills, the issue).
 
 Facts:
 {facts}"""

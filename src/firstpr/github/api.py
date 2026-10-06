@@ -284,7 +284,7 @@ class GraphQLClient:
                 "orderBy: {field: CREATED_AT, direction: DESC}, "
                 f"filterBy: {{labels: {json.dumps(labels, ensure_ascii=False)}}}) "
                 "{ nodes { number title body createdAt updatedAt "
-                "labels(first: 10) { nodes { name } } comments { totalCount } "
+                "labels(first: 10) { nodes { name color } } comments { totalCount } "
                 "assignees { totalCount } } }"
             )
 
@@ -301,6 +301,9 @@ class GraphQLClient:
                             "created_at": iss["createdAt"],
                             "updated_at": iss["updatedAt"],
                             "labels": [x["name"] for x in iss["labels"]["nodes"]],
+                            "label_colors": {
+                                x["name"]: x.get("color") for x in iss["labels"]["nodes"]
+                            },
                             "n_comments": iss["comments"]["totalCount"],
                             "n_assignees": iss["assignees"]["totalCount"],
                         }

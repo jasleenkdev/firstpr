@@ -1,24 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { call, type Options, type Recommendation, type Repo } from "./api";
+import { useEffect, useId, useState } from "react";
+import { ApiError, call, type Options, type Recommendation, type Repo } from "./api";
+import { ContributionGrid, type GridMode } from "./components/ContributionGrid";
+import { age, labelStyle, whyItFits, whyNew } from "./format";
 
-type Mode = "github" | "new";
-type ServerState = "checking" | "waking" | "ready" | "down";
+type Path = "github" | "new";
+type Server = "checking" | "waking" | "ready" | "down";
+type Problem = { message: string; offerQuestions?: boolean };
 
-const HOURS = [1, 3, 5, 8, 12];
+const HOURS = [
+  { value: 1, label: "About 1 hour" },
+  { value: 3, label: "About 3 hours" },
+  { value: 5, label: "About 5 hours" },
+  { value: 8, label: "About 8 hours" },
+  { value: 12, label: "10 hours or more" },
+];
+
+function problemFor(err: unknown, path: Path): Problem {
+  const status = err instanceof ApiError ? err.status : 0;
+  if (status === 404 && path === "github")
+    return { message: "We couldn't find that username. Check the spelling, or answer three questions instead.", offerQuestions: true };
+  if (status === 422 && path === "github")
+    return { message: "That doesn't look like a GitHub username. Usernames use letters, numbers and single hyphens." };
+  if (status === 422) return { message: "Pick at least one language or interest, then try again." };
+  if (status === 429) return { message: "That was a lot of requests in a short time. Wait a minute, then try again." };
+  if (status === 503)
+    return { message: "GitHub isn't answering right now. Try again in a minute, or answer three questions instead.", offerQuestions: true };
+  return { message: "We can't reach the server right now. Check your connection and try again in a minute." };
+}
 
 export default function Home() {
-  const [mode, setMode] = useState<Mode>("github");
-  const [server, setServer] = useState<ServerState>("checking");
+  const [path, setPath] = useState<Path>("github");
+  const [server, setServer] = useState<Server>("checking");
   const [options, setOptions] = useState<Options | null>(null);
   const [username, setUsername] = useState("");
   const [hours, setHours] = useState(3);
   const [langs, setLangs] = useState<string[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
   const [result, setResult] = useState<Recommendation | null>(null);
+  const [resultPath, setResultPath] = useState<Path>("github");
 
   useEffect(() => {
     let done = false;
@@ -38,157 +61,288 @@ export default function Home() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    if (path === "github" && !username.trim()) return setProblem({ message: "Enter your GitHub username first." });
+    if (path === "new" && langs.length + interests.length === 0)
+      return setProblem({ message: "Pick at least one language or interest first." });
+    setProblem(null);
     setResult(null);
     setLoading(true);
     try {
       const out =
-        mode === "github"
+        path === "github"
           ? await call<Recommendation>("/recommend/github", { username: username.trim(), hours })
           : await call<Recommendation>("/recommend/onboarding", { languages: langs, interests, hours });
       setResult(out);
+      setResultPath(path);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setProblem(problemFor(err, path));
     } finally {
       setLoading(false);
     }
   }
 
+  function switchToQuestions() {
+    setPath("new");
+    setProblem(null);
+    document.getElementById("questions")?.focus();
+  }
+
   const toggle = (list: string[], set: (v: string[]) => void, v: string) =>
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-  const canSubmit =
-    !loading && server !== "down" && (mode === "github" ? username.trim().length > 0 : langs.length + interests.length > 0);
+  const gridMode: GridMode =
+    loading || server === "waking" ? "loading" : result && resultPath === "github" ? "result" : "idle";
+  const activity = result?.activity;
+  const starDays = activity?.length ?? 0;
+  const stars = (activity || []).reduce((n, a) => n + a.count, 0);
+  const gridText =
+    gridMode === "loading"
+      ? "The squares fill in one by one while we wait."
+      : gridMode === "result"
+      ? stars
+        ? `Each square is a day. The dark ones are the ${starDays} days in the last six months when you starred projects (${stars} stars). The yellow square, a few days from now, is your first contribution.`
+        : "Each square is a day. We didn't find stars from the last six months. The yellow square, a few days from now, is your first contribution."
+      : "Each square is a day of the last six months. The yellow one, a few days from now, is your first contribution.";
 
   return (
-    <main className="wrap">
-      <header className="hero">
-        <h1>FirstPR</h1>
-        <p>Open-source projects and beginner issues picked for you, with the reasons behind each pick.</p>
+    <>
+      <header className="site-header">
+        <div className="wrap">
+          <span className="wordmark">FirstPR</span>
+        </div>
       </header>
 
-      {server === "waking" && <p className="notice">Waking up the server, this can take up to a minute…</p>}
-      {server === "down" && <p className="notice error">The server is not reachable right now. Please try again later.</p>}
+      <main className="wrap">
+        <section className="hero" aria-labelledby="hero-title">
+          <h1 id="hero-title">Find your first contribution</h1>
+          <p className="lede">
+            FirstPR suggests open-source projects, and specific beginner issues inside them, that match what you
+            know and how much time you have.
+          </p>
+          <ContributionGrid mode={gridMode} activity={activity} label={gridText} />
+          <p className="grid-note">{gridText}</p>
+          <p className="status" role="status" aria-live="polite">
+            {server === "waking" && !loading && "Starting the server. The first visit of the day can take up to a minute."}
+            {server === "down" && "We can't reach the server right now. Please try again in a few minutes."}
+            {loading && "Finding projects that fit you."}
+          </p>
+        </section>
 
-      <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={mode === "github"} className={mode === "github" ? "tab on" : "tab"} onClick={() => setMode("github")}>
-          I have GitHub
-        </button>
-        <button role="tab" aria-selected={mode === "new"} className={mode === "new" ? "tab on" : "tab"} onClick={() => setMode("new")}>
-          New to GitHub
-        </button>
-      </div>
+        <section className="ask" aria-labelledby="ask-title">
+          <h2 id="ask-title">Where should we start?</h2>
+          <form onSubmit={submit} noValidate>
+            <fieldset className="paths">
+              <legend className="visually-hidden">How should we find projects for you?</legend>
+              <PathOption
+                checked={path === "github"}
+                onChange={() => setPath("github")}
+                title="I have a GitHub account"
+                hint="We'll start from the projects you've starred."
+              />
+              <PathOption
+                checked={path === "new"}
+                onChange={() => setPath("new")}
+                title="I'm new to GitHub"
+                hint="Answer three short questions instead."
+              />
+            </fieldset>
 
-      <form className="card form" onSubmit={submit}>
-        {mode === "github" ? (
-          <>
-            <label htmlFor="user">GitHub username</label>
-            <input
-              id="user"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="your-username"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={39}
-            />
-            <p className="consent">
-              We read your public stars from GitHub once to make these recommendations. Your username is not stored
-              or logged.
-            </p>
-          </>
-        ) : (
-          <>
-            <fieldset>
-              <legend>Languages you know</legend>
-              <div className="chips">
-                {(options?.languages ?? []).map((l) => (
-                  <button type="button" key={l} className={langs.includes(l) ? "chip on" : "chip"} onClick={() => toggle(langs, setLangs, l)}>
-                    {l}
-                  </button>
+            {path === "github" ? (
+              <div className="field">
+                <label htmlFor="username">Your GitHub username</label>
+                <input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  maxLength={39}
+                  aria-describedby="consent"
+                />
+                <p id="consent" className="hint">
+                  We read your public stars from GitHub once to make these picks. We don't store or log your username.
+                </p>
+              </div>
+            ) : (
+              <div id="questions" tabIndex={-1} className="questions">
+                <ChoiceGroup
+                  legend="Which languages do you know?"
+                  hint="Pick any that you've written code in, even a little."
+                  options={(options?.languages ?? []).map((l) => ({ value: l, label: l }))}
+                  selected={langs}
+                  onToggle={(v) => toggle(langs, setLangs, v)}
+                />
+                <ChoiceGroup
+                  legend="What would you like to work on?"
+                  options={(options?.interests ?? []).map((t) => ({ value: t.id, label: t.label }))}
+                  selected={interests}
+                  onToggle={(v) => toggle(interests, setInterests, v)}
+                />
+              </div>
+            )}
+
+            <fieldset className="field hours">
+              <legend>How many hours a week can you give?</legend>
+              <div className="hour-options">
+                {HOURS.map((h) => (
+                  <label key={h.value} className="hour">
+                    <input type="radio" name="hours" value={h.value} checked={hours === h.value} onChange={() => setHours(h.value)} />
+                    <span>{h.label}</span>
+                  </label>
                 ))}
               </div>
             </fieldset>
-            <fieldset>
-              <legend>What interests you</legend>
-              <div className="chips">
-                {(options?.interests ?? []).map((t) => (
-                  <button type="button" key={t.id} className={interests.includes(t.id) ? "chip on" : "chip"} onClick={() => toggle(interests, setInterests, t.id)}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          </>
-        )}
-        <label htmlFor="hours">Hours per week you can spend</label>
-        <select id="hours" value={hours} onChange={(e) => setHours(Number(e.target.value))}>
-          {HOURS.map((h) => (
-            <option key={h} value={h}>
-              {h === 12 ? "10+" : h} hours
-            </option>
-          ))}
-        </select>
-        <button className="primary" type="submit" disabled={!canSubmit}>
-          {loading ? "Finding projects…" : "Find projects"}
-        </button>
-      </form>
 
-      {error && <p className="notice error">{error}</p>}
-      {loading && <Skeleton />}
-      {result && <Results result={result} skills={mode === "github" ? ((result.profile.languages as string[]) ?? []) : langs} />}
+            <button className="primary" type="submit" disabled={loading || server === "down"}>
+              {loading ? "Finding projects" : "Show my recommendations"}
+            </button>
+          </form>
 
-      <footer>
-        Data: GitHub public events and repository pages.{" "}
-        {result?.data_updated && <>Issues updated {new Date(result.data_updated).toLocaleDateString()}.</>}
+          {problem && (
+            <div className="problem" role="alert">
+              <p>{problem.message}</p>
+              {problem.offerQuestions && (
+                <button type="button" className="text-button" onClick={switchToQuestions}>
+                  Answer three questions instead
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+
+        {result && <Results result={result} path={resultPath} skills={resultPath === "github" ? result.profile.languages ?? [] : langs} onQuestions={switchToQuestions} />}
+      </main>
+
+      <footer className="site-footer">
+        <div className="wrap">
+          <p>
+            Recommendations use public GitHub activity and repository pages.
+            {result?.data_updated && <> Open issues were last refreshed on {new Date(result.data_updated).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}.</>}
+          </p>
+        </div>
       </footer>
-    </main>
+    </>
   );
 }
 
-function Skeleton() {
+function PathOption({ checked, onChange, title, hint }: { checked: boolean; onChange: () => void; title: string; hint: string }) {
   return (
-    <div aria-hidden>
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="card skeleton" />
-      ))}
-    </div>
+    <label className={checked ? "path on" : "path"}>
+      <input type="radio" name="path" checked={checked} onChange={onChange} />
+      <span className="path-title">{title}</span>
+      <span className="path-hint">{hint}</span>
+    </label>
   );
 }
 
-function Results({ result, skills }: { result: Recommendation; skills: string[] }) {
-  if (!result.repos.length) return <p className="notice">No matches yet. Try adding a language or an interest.</p>;
+function ChoiceGroup({
+  legend,
+  hint,
+  options,
+  selected,
+  onToggle,
+}: {
+  legend: string;
+  hint?: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onToggle: (v: string) => void;
+}) {
   return (
-    <section>
-      {result.degraded && <p className="notice">{result.degraded.message}</p>}
-      <h2>Recommended for you</h2>
-      {result.profile.retrieval === "text_profile" && (
-        <p className="hint">None of your stars are in our catalog yet, so these picks match the languages and topics of your stars.</p>
+    <fieldset className="field">
+      <legend>{legend}</legend>
+      {hint && <p className="hint">{hint}</p>}
+      {options.length === 0 ? (
+        <p className="hint">Loading the choices.</p>
+      ) : (
+        <div className="choices">
+          {options.map((o) => (
+            <label key={o.value} className={selected.includes(o.value) ? "choice on" : "choice"}>
+              <input type="checkbox" checked={selected.includes(o.value)} onChange={() => onToggle(o.value)} />
+              <span>{o.label}</span>
+            </label>
+          ))}
+        </div>
       )}
-      {result.repos.map((r) => (
-        <RepoCard key={r.id} repo={r} skills={skills} />
-      ))}
+    </fieldset>
+  );
+}
+
+function Results({
+  result,
+  path,
+  skills,
+  onQuestions,
+}: {
+  result: Recommendation;
+  path: Path;
+  skills: string[];
+  onQuestions: () => void;
+}) {
+  if (!result.repos.length)
+    return (
+      <section className="results" aria-labelledby="results-title">
+        <h2 id="results-title">No matches yet</h2>
+        <p>No projects match these choices yet. Add another language or interest and try again.</p>
+      </section>
+    );
+  const seen = new Map<string, number>();
+  return (
+    <section className="results" aria-labelledby="results-title">
+      <h2 id="results-title">Projects for you</h2>
+      {result.degraded && (
+        <div className="notice">
+          <p>
+            GitHub is limiting our requests right now, so these are general beginner picks rather than picks based on
+            your stars. Try again later, or answer three questions instead.
+          </p>
+          <button type="button" className="text-button" onClick={onQuestions}>
+            Answer three questions instead
+          </button>
+        </div>
+      )}
+      {result.profile.retrieval === "text_profile" && (
+        <p className="intro">
+          None of your stars are in our catalog yet, so these picks follow the languages and topics of what you've starred.
+        </p>
+      )}
+      <ul className="projects">
+        {result.repos.map((r) => (
+          <ProjectRow key={r.id} repo={r} skills={skills} why={whyItFits(r, path === "new", seen)} />
+        ))}
+      </ul>
       {result.new_projects.length > 0 && (
         <>
-          <h2>New projects</h2>
-          <p className="hint">Recently created repositories with fresh beginner issues that match your skills.</p>
-          {result.new_projects.map((r) => (
-            <RepoCard key={r.id} repo={r} skills={skills} isNew />
-          ))}
+          <h2 className="section-gap">New projects looking for first contributors</h2>
+          <p className="intro">Started in the last six months, with beginner issues opened in the past two weeks.</p>
+          <ul className="projects">
+            {result.new_projects.map((r) => (
+              <ProjectRow
+                key={r.id}
+                repo={r}
+                skills={skills}
+                why={whyNew(r)}
+              />
+            ))}
+          </ul>
         </>
       )}
     </section>
   );
 }
 
-function RepoCard({ repo, skills, isNew }: { repo: Repo; skills: string[]; isNew?: boolean }) {
-  const [why, setWhy] = useState<string | null>(null);
+function ProjectRow({ repo, skills, why }: { repo: Repo; skills: string[]; why: string }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const regionId = useId();
   const s = repo.signals || {};
 
-  async function explain() {
-    if (why) return setWhy(null);
+  async function toggleExplain() {
+    if (open) return setOpen(false);
+    setOpen(true);
+    if (text) return;
     setBusy(true);
     try {
       const out = await call<{ text: string }>("/explain", {
@@ -197,56 +351,56 @@ function RepoCard({ repo, skills, isNew }: { repo: Repo; skills: string[]; isNew
         co_starred: s.co_starred_with ?? [],
         skills: [...(s.matched_skills ?? []), ...skills].slice(0, 10),
       });
-      setWhy(out.text);
+      setText(out.text);
     } catch {
-      setWhy("Could not load the explanation right now.");
+      setText("We couldn't load an explanation right now. Try again in a minute.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <article className="card repo">
-      <div className="repo-head">
-        <a href={repo.url} target="_blank" rel="noreferrer" className="repo-name">
-          {repo.name}
-        </a>
-        <span className="meta">
-          {repo.language && <span className="lang">{repo.language}</span>}★ {repo.stars.toLocaleString()}
-          {isNew && <span className="badge new">new</span>}
-        </span>
+    <li className="project">
+      <div className="project-head">
+        <h3>
+          <a href={repo.url} target="_blank" rel="noreferrer">
+            {repo.name}
+          </a>
+        </h3>
+        {repo.language && <span className="language">{repo.language}</span>}
       </div>
-      <p className="summary">{repo.summary || repo.description}</p>
-      <div className="signals">
-        {s.starred_by_you && <span className="sig">You starred this</span>}
-        {(s.co_starred_with ?? []).length > 0 && <span className="sig">Starred by people who starred {s.co_starred_with!.join(", ")}</span>}
-        {(s.matched_skills ?? []).slice(0, 4).map((k) => (
-          <span key={k} className="sig skill">
-            {k}
-          </span>
-        ))}
-      </div>
-      <ul className="issues">
+      <p className="why">{why}</p>
+      {(repo.summary || repo.description) && <p className="summary">{repo.summary || repo.description}</p>}
+
+      <ul className="thread" aria-label={`Beginner issues in ${repo.name}`}>
         {repo.issues.map((i) => (
-          <li key={i.number}>
+          <li key={i.number} className="issue">
             <a href={i.url} target="_blank" rel="noreferrer">
               {i.title}
             </a>
-            <span className="issue-meta">
-              {i.difficulty && <span className={`badge ${i.difficulty}`}>{i.difficulty}</span>}
-              {i.labels.slice(0, 2).map((l) => (
-                <span key={l} className="label">
+            <p className="issue-meta">
+              <span>
+                Opened {age(i.created_at)}
+                {i.difficulty ? `, looks ${i.difficulty}` : ""}
+              </span>
+              {i.labels.slice(0, 3).map((l) => (
+                <span key={l} className="label" style={labelStyle(i.label_colors?.[l])}>
                   {l}
                 </span>
               ))}
-            </span>
+            </p>
           </li>
         ))}
       </ul>
-      <button className="link" onClick={explain} disabled={busy}>
-        {busy ? "Loading…" : why ? "Hide" : "Why this?"}
+
+      <button type="button" className="text-button" aria-expanded={open} aria-controls={regionId} onClick={toggleExplain}>
+        {open ? "Hide explanation" : "Explain this pick"}
       </button>
-      {why && <p className="why">{why}</p>}
-    </article>
+      <div id={regionId} className={open ? "explain open" : "explain"} role="region" aria-label={`Why ${repo.name} was picked`} aria-hidden={!open}>
+        <div className="explain-inner">
+          <p aria-live="polite">{busy ? "Writing the explanation." : text}</p>
+        </div>
+      </div>
+    </li>
   );
 }

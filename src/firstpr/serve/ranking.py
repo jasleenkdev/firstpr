@@ -137,6 +137,11 @@ def pick_issues(
                 "title": iss["title"],
                 "url": f"https://github.com/{repo['name']}/issues/{iss['number']}",
                 "labels": iss.get("labels", [])[:5],
+                "label_colors": {
+                    lab: c
+                    for lab, c in (iss.get("label_colors") or {}).items()
+                    if lab in iss.get("labels", [])[:5]
+                },
                 "difficulty": iss.get("difficulty"),
                 "difficulty_source": iss.get("difficulty_source"),
                 "skills": iss.get("skills", [])[:4],

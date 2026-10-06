@@ -465,3 +465,51 @@ def test_explanation_with_unknown_repo_name_falls_back(monkeypatch):
     ]
     out = ex.explain(facts)
     assert out["source"] == "template" and "winget-cli" in out["text"]
+
+
+def test_star_activity_counts_days_only():
+    from datetime import date
+
+    from firstpr.serve.github import star_activity
+
+    st = [
+        Star(1, "a/b", None, [], "2026-10-01T10:00:00Z"),
+        Star(2, "c/d", None, [], "2026-10-01T12:00:00Z"),
+        Star(3, "e/f", None, [], "2026-03-01T00:00:00Z"),
+        Star(4, "g/h", None, [], ""),
+    ]
+    out = star_activity(st, days=182, today=date(2026, 10, 6))
+    assert out == [{"date": "2026-10-01", "count": 2}]  # March is older than 26 weeks
+    assert "a/b" not in str(out)
+
+
+def test_label_colours_kept_for_shown_labels():
+    from firstpr.serve.refresh import issue_record, label_colors
+
+    assert label_colors(["bug", "x"], {"bug": "D73A4A", "x": None}) == {"bug": "#d73a4a"}
+    rec = issue_record(
+        1,
+        {
+            "number": 2,
+            "title": "t",
+            "labels": ["good first issue"],
+            "created_at": None,
+            "updated_at": None,
+            "n_comments": 0,
+            "n_assignees": 0,
+            "label_colors": {"good first issue": "7057ff"},
+        },
+        None,
+    )
+    assert rec["label_colors"] == {"good first issue": "#7057ff"}
+    cat = make_catalog()
+    cat.issues[100][0]["label_colors"] = {"good first issue": "#7057ff"}
+    picked = ranking.pick_issues(
+        cat, cat.repos[0], ranking.Profile(skills={"documentation"}, hours=1), NOW
+    )
+    assert picked[0]["label_colors"] == {"good first issue": "#7057ff"}
+
+
+def test_github_response_has_activity(client):
+    r = client.post("/recommend/github", json={"username": "someone"})
+    assert isinstance(r.json()["activity"], list)

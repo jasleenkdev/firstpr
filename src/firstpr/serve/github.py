@@ -11,6 +11,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from typing import Any
 
 import requests
@@ -157,3 +158,20 @@ class StarCache:
         if len(self._d) >= self.max_items:
             self._d.pop(next(iter(self._d)))
         self._d[key] = (time.time(), stars)
+
+
+def star_activity(
+    stars: list[Star], days: int = 182, today: date | None = None
+) -> list[dict[str, Any]]:
+    """Stars per day over the last `days` days (date + count only, no repo names), for the
+    activity grid on the results page."""
+    end = today or datetime.now(UTC).date()
+    counts: dict[str, int] = {}
+    for s in stars:
+        try:
+            d = date.fromisoformat((s.starred_at or "")[:10])
+        except ValueError:
+            continue
+        if 0 <= (end - d).days < days:
+            counts[d.isoformat()] = counts.get(d.isoformat(), 0) + 1
+    return [{"date": d, "count": c} for d, c in sorted(counts.items())]

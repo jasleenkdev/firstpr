@@ -85,6 +85,16 @@ def label_difficulty(labels: list[str]) -> str | None:
     return None
 
 
+def label_colors(labels: list[str], colors: dict[str, Any] | None) -> dict[str, str]:
+    """GitHub label colours (6-digit hex without '#') for the kept labels; unknown ones omitted."""
+    colors = colors or {}
+    return {
+        lab: f"#{colors[lab].lower()}"
+        for lab in labels
+        if isinstance(colors.get(lab), str) and len(colors[lab]) == 6
+    }
+
+
 def label_skills(labels: list[str]) -> list[str]:
     out = []
     for lab in labels:
@@ -102,6 +112,7 @@ def issue_record(repo_id: int, iss: dict[str, Any], llm: dict[str, Any] | None) 
         "number": int(iss["number"]),
         "title": scrub_text(iss["title"], 200),
         "labels": labels[:8],
+        "label_colors": label_colors(labels[:8], iss.get("label_colors")),
         "created_at": iss["created_at"],
         "updated_at": iss["updated_at"],
         "n_comments": int(iss["n_comments"]),
@@ -133,7 +144,7 @@ FRESH_QUERY = """query($q: String!, $after: String) {
     pageInfo { hasNextPage endCursor }
     nodes { ... on Issue {
       number title body createdAt updatedAt
-      labels(first: 10) { nodes { name } } comments { totalCount } assignees { totalCount }
+      labels(first: 10) { nodes { name color } } comments { totalCount } assignees { totalCount }
       repository { databaseId nameWithOwner description createdAt stargazerCount isFork
         isArchived primaryLanguage { name }
         repositoryTopics(first: 8) { nodes { topic { name } } } }
@@ -187,6 +198,7 @@ def fresh_repos(
                     "created_at": n["createdAt"],
                     "updated_at": n["updatedAt"],
                     "labels": [x["name"] for x in n["labels"]["nodes"]],
+                    "label_colors": {x["name"]: x.get("color") for x in n["labels"]["nodes"]},
                     "n_comments": n["comments"]["totalCount"],
                     "n_assignees": n["assignees"]["totalCount"],
                 }
