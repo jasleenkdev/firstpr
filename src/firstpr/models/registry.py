@@ -40,6 +40,7 @@ MODELS: dict[str, Callable[[], Recommender]] = {
     "sasrec_text_kar": TextSASRec,
     "sasrec_text_moe_warm": TextSASRec,
     "sasrec_text_linear_id_warm": TextSASRec,
+    "sasrec_text_mlp_warm": TextSASRec,
 }
 
 

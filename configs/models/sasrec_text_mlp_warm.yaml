@@ -1,0 +1,5 @@
+name: sasrec_text_mlp_warm
+tuned_from_model: sasrec_text_mlp  # ablation: tuned config, softmax over warm items only
+overrides:
+  cold_negatives: false  # new repos (no train interactions) are never pushed down as negatives;
+                         # with the full-catalog softmax text-SASRec scored 0 cold NDCG on GitHub
