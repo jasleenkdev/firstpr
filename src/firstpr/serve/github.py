@@ -31,6 +31,39 @@ class GitHubUnavailable(RuntimeError):
     pass
 
 
+class GitHubRateLimited(GitHubUnavailable):
+    pass
+
+
+class GitHubQuota:
+    """Remaining requests of the shared server token, from GitHub's X-RateLimit-* headers.
+    `low()` is true while fewer than `min_remaining` requests are left before the reset, or
+    after GitHub refused a request (403 / 429) until its reset time. Per process."""
+
+    def __init__(self, min_remaining: int = 300) -> None:
+        self.min_remaining = min_remaining
+        self.remaining: int | None = None
+        self.reset_at = 0.0
+
+    def update(self, headers: Any) -> None:
+        try:
+            self.remaining = int(headers["x-ratelimit-remaining"])
+            self.reset_at = float(headers["x-ratelimit-reset"])
+        except (KeyError, TypeError, ValueError):
+            pass
+
+    def exhaust(self, headers: Any) -> None:
+        self.remaining = 0
+        retry = headers.get("retry-after") if headers is not None else None
+        reset = headers.get("x-ratelimit-reset") if headers is not None else None
+        self.reset_at = float(reset) if reset else time.time() + float(retry or 60)
+
+    def low(self) -> bool:
+        if time.time() >= self.reset_at:
+            return False
+        return self.remaining is not None and self.remaining < self.min_remaining
+
+
 def hash_username(username: str, salt: bytes) -> str:
     """Salted HMAC of the lower-cased login (logins are case-insensitive)."""
     return hmac.new(salt, username.lower().encode(), hashlib.sha256).hexdigest()[:16]
@@ -46,7 +79,11 @@ class Star:
 
 
 def fetch_stars(
-    username: str, token: str | None, max_pages: int = 2, timeout: float = 8.0
+    username: str,
+    token: str | None,
+    quota: GitHubQuota | None = None,
+    max_pages: int = 2,
+    timeout: float = 8.0,
 ) -> list[Star]:
     """Most recent stars (newest first, up to 100 * max_pages), the user's own repos removed."""
     if not USERNAME.match(username or ""):
@@ -65,9 +102,15 @@ def fetch_stars(
             )
         except requests.RequestException as e:
             raise GitHubUnavailable(type(e).__name__) from None
+        if quota is not None:
+            quota.update(r.headers)
         if r.status_code == 404:
             raise UserNotFound("no such GitHub user")
-        if r.status_code in (403, 429) or r.status_code >= 500:
+        if r.status_code in (403, 429):
+            if quota is not None:
+                quota.exhaust(r.headers)
+            raise GitHubRateLimited(f"GitHub API returned {r.status_code}")
+        if r.status_code >= 500:
             raise GitHubUnavailable(f"GitHub API returned {r.status_code}")
         r.raise_for_status()
         return r.json()

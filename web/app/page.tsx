@@ -161,6 +161,7 @@ function Results({ result, skills }: { result: Recommendation; skills: string[] 
   if (!result.repos.length) return <p className="notice">No matches yet. Try adding a language or an interest.</p>;
   return (
     <section>
+      {result.degraded && <p className="notice">{result.degraded.message}</p>}
       <h2>Recommended for you</h2>
       {result.profile.retrieval === "text_profile" && (
         <p className="hint">None of your stars are in our catalog yet, so these picks match the languages and topics of your stars.</p>

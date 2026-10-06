@@ -27,6 +27,8 @@ from .catalog import Catalog, DynamicRefresher, env_paths
 from .explain import Explainer, collect_facts
 from .github import (
     USERNAME,
+    GitHubQuota,
+    GitHubRateLimited,
     GitHubUnavailable,
     InvalidUsername,
     StarCache,
@@ -57,22 +59,34 @@ class ExplainRequest(BaseModel):
 
 
 class RateLimiter:
-    """Sliding window per client key (requests per minute); keys are not logged or stored."""
+    """Sliding window per client key (`limit` requests per `window` seconds); keys are kept in
+    memory only, never logged. Per process: on serverless each instance counts separately."""
 
-    def __init__(self, per_minute: int) -> None:
-        self.per_minute = per_minute
+    def __init__(self, limit: int, window: float = 60.0) -> None:
+        self.limit, self.window = limit, window
         self.hits: dict[str, deque[float]] = defaultdict(deque)
 
     def allow(self, key: str) -> bool:
         now, q = time.time(), self.hits[key]
-        while q and now - q[0] > 60:
+        while q and now - q[0] > self.window:
             q.popleft()
-        if len(q) >= self.per_minute:
+        if len(q) >= self.limit:
             return False
         q.append(now)
         if len(self.hits) > 10_000:
             self.hits.clear()
         return True
+
+
+DEFAULT_INTERESTS = ["web", "tools", "docs"]  # degraded GitHub path: broad beginner picks
+
+
+def client_key(request: Request) -> str:
+    """Client IP as seen by the platform: Vercel sets x-real-ip (x-forwarded-for can be spoofed
+    by the client, so it is only a fallback)."""
+    ip = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for", "")
+    ip = ip.split(",")[0].strip()
+    return ip or (request.client.host if request.client else "unknown")
 
 
 def _ms(t0: float) -> float:
@@ -91,10 +105,23 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
         cat, os.environ.get("FIRSTPR_DATASET"), os.environ.get("HF_TOKEN"), "/tmp/firstpr-dynamic"
     )
     explainer = Explainer(
-        os.environ.get("GROQ_API_KEY"), os.environ.get("EXPLAIN_MODEL", "qwen/qwen3.8-27b")
+        os.environ.get("GROQ_API_KEY"),
+        os.environ.get("EXPLAIN_MODEL", "qwen/qwen3.8-27b"),
+        daily_cap=int(os.environ.get("EXPLAIN_DAILY_CAP", "400")),
     )
     stars_cache = StarCache()
-    limiter = RateLimiter(int(os.environ.get("RATE_PER_MINUTE", "30")))
+    quota = GitHubQuota(int(os.environ.get("GITHUB_MIN_REMAINING", "300")))
+    env_int = lambda k, d: int(os.environ.get(k, d))  # noqa: E731
+    limits = {
+        "recommend": [
+            RateLimiter(env_int("RATE_PER_MINUTE", "20"), 60),
+            RateLimiter(env_int("RATE_PER_DAY", "300"), 86400),
+        ],
+        "explain": [
+            RateLimiter(env_int("EXPLAIN_PER_MINUTE", "10"), 60),
+            RateLimiter(env_int("EXPLAIN_PER_DAY", "150"), 86400),
+        ],
+    }
 
     app = FastAPI(title="FirstPR API", docs_url=None, redoc_url=None)
     origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
@@ -106,20 +133,25 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
         allow_headers=["Content-Type"],
     )
 
-    def guard(request: Request) -> None:
+    def guard(request: Request, group: str) -> None:
         refresher.maybe_refresh()
-        client = request.headers.get(
-            "x-forwarded-for", request.client.host if request.client else ""
-        )
-        if not limiter.allow(client.split(",")[0].strip()):
-            raise HTTPException(429, "too many requests, try again in a minute")
+        key = client_key(request)
+        if not all(lim.allow(key) for lim in limits[group]):
+            raise HTTPException(429, "too many requests, please try again later")
 
     def record(path: str, timings: dict[str, float], **counts: Any) -> None:
         log.info(json.dumps({"path": path, "timings_ms": timings, **counts}))
 
     @app.get("/health")
     def health() -> dict[str, Any]:
-        return {"status": "ok", "model": cat.meta.get("model"), "load_ms": load_ms, **cat.stats()}
+        return {
+            "status": "ok",
+            "model": cat.meta.get("model"),
+            "load_ms": load_ms,
+            "github_quota_low": quota.low(),
+            "explanations_today": explainer.count,
+            **cat.stats(),
+        }
 
     @app.get("/options")
     def options() -> dict[str, Any]:
@@ -132,9 +164,25 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
             "hours": [1, 3, 5, 8, 12],
         }
 
+    def degraded(hours: float, t0: float) -> dict[str, Any]:
+        """Shared GitHub token nearly used up: broad onboarding picks instead of a star fetch."""
+        out = ranking.recommend_onboarding(cat, [], DEFAULT_INTERESTS, hours)
+        timings = {"fetch_stars": 0.0, "retrieve_and_rank": _ms(t0), "total": _ms(t0)}
+        record("github_degraded", timings, n_repos=len(out["repos"]))
+        return {
+            **out,
+            "degraded": {
+                "reason": "github_quota",
+                "message": "GitHub is limiting our requests right now, so these are general "
+                "beginner picks. Try again later, or use the New to GitHub option.",
+            },
+            "timings_ms": timings,
+            "data_updated": cat.manifest.get("updated_at"),
+        }
+
     @app.post("/recommend/github")
     def recommend_github(body: GitHubRequest, request: Request) -> dict[str, Any]:
-        guard(request)
+        guard(request, "recommend")
         t0 = time.perf_counter()
         if not USERNAME.match(body.username):
             raise HTTPException(422, "that is not a valid GitHub username")
@@ -143,12 +191,18 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
             stars = stars_cache.get(key)
             cached = stars is not None
             if stars is None:
-                stars = star_fetcher(body.username, os.environ.get("GITHUB_TOKEN"))
+                if quota.low():  # keep the shared token's last requests: serve degraded picks
+                    return degraded(body.hours, t0)
+                stars = star_fetcher(body.username, os.environ.get("GITHUB_TOKEN"), quota=quota)
                 stars_cache.put(key, stars)
         except InvalidUsername:
             raise HTTPException(422, "that is not a valid GitHub username") from None
         except UserNotFound:
             raise HTTPException(404, "no GitHub user with that name") from None
+        except GitHubRateLimited:
+            if not quota.low():  # back off until GitHub's reset (60 s if it gave none)
+                quota.exhaust({})
+            return degraded(body.hours, t0)
         except GitHubUnavailable:
             raise HTTPException(
                 503, "GitHub is not answering right now, try again shortly"
@@ -169,7 +223,7 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
 
     @app.post("/recommend/onboarding")
     def recommend_onboarding(body: OnboardingRequest, request: Request) -> dict[str, Any]:
-        guard(request)
+        guard(request, "recommend")
         t0 = time.perf_counter()
         known = {t["id"] for t in cat.topics}
         interests = [i for i in body.interests if i in known]
@@ -182,7 +236,7 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
 
     @app.post("/explain")
     def explain(body: ExplainRequest, request: Request) -> dict[str, Any]:
-        guard(request)
+        guard(request, "explain")
         t0 = time.perf_counter()
         facts = collect_facts(cat, body.repo_id, body.issue_number, body.co_starred, body.skills)
         if facts is None:

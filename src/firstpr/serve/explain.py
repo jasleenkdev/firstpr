@@ -73,9 +73,16 @@ def template(facts: list[str]) -> str:
 
 class Explainer:
     def __init__(
-        self, api_key: str | None, model: str, timeout: float = 8.0, cache_size: int = 2048
+        self,
+        api_key: str | None,
+        model: str,
+        timeout: float = 8.0,
+        cache_size: int = 2048,
+        daily_cap: int = 400,
     ) -> None:
+        """`daily_cap`: LLM calls per UTC day (per process); beyond it, template explanations."""
         self.api_key, self.model, self.timeout = api_key, model, timeout
+        self.daily_cap, self.count, self.day = daily_cap, 0, ""
         self.cache: OrderedDict[str, str] = OrderedDict()
         self.cache_size = cache_size
         self.blocked_until = 0.0  # after a 429, skip Groq until then
@@ -86,7 +93,11 @@ class Explainer:
             self.cache.move_to_end(key)
             return {"text": self.cache[key], "source": "cache", "facts": facts}
         text, source = None, "template"
-        if self.api_key and time.time() >= self.blocked_until:
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        if today != self.day:
+            self.day, self.count = today, 0
+        if self.api_key and time.time() >= self.blocked_until and self.count < self.daily_cap:
+            self.count += 1
             text = self._groq(PROMPT.format(facts="\n".join(f"- {f}" for f in facts)))
             source = "llm" if text else "template"
         if not text:

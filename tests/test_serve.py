@@ -28,6 +28,7 @@ def test_numpy_encoder_matches_torch():
 # ---- synthetic catalog -------------------------------------------------------------------------
 
 import logging  # noqa: E402
+import time  # noqa: E402
 from datetime import UTC, datetime  # noqa: E402
 
 import pytest  # noqa: E402
@@ -213,13 +214,23 @@ def client(monkeypatch):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     calls = []
 
-    def fake_fetch(username, token):
+    def fake_fetch(username, token, quota=None):
         calls.append(username)
+        if getattr(c_holder, "rate_limited", False):
+            from firstpr.serve.github import GitHubRateLimited
+
+            raise GitHubRateLimited("403")
         return stars([100, 101, 102])
+
+    class Holder:
+        pass
+
+    c_holder = Holder()
 
     app = create_app(catalog=make_catalog(), star_fetcher=fake_fetch)
     c = TestClient(app)
     c.calls = calls
+    c.holder = c_holder
     return c
 
 
@@ -316,3 +327,71 @@ def test_users_own_repos_are_never_recommended():
         )
         == []
     )
+
+
+# ---- abuse protection (phase 7) -----------------------------------------------------------------
+
+
+def test_per_ip_rate_limit(monkeypatch):
+    monkeypatch.setenv("ID_SALT", "s")
+    monkeypatch.setenv("RATE_PER_MINUTE", "2")
+    c = TestClient(create_app(catalog=make_catalog(), star_fetcher=lambda *a, **k: []))
+    body = {"languages": ["Python"], "interests": [], "hours": 3}
+    ip_a = {"x-real-ip": "1.1.1.1"}
+    assert [
+        c.post("/recommend/onboarding", json=body, headers=ip_a).status_code for _ in range(3)
+    ] == [200, 200, 429]
+    assert (
+        c.post("/recommend/onboarding", json=body, headers={"x-real-ip": "2.2.2.2"}).status_code
+        == 200
+    )
+    spoof = {"x-real-ip": "1.1.1.1", "x-forwarded-for": "9.9.9.9"}  # x-real-ip wins
+    assert c.post("/recommend/onboarding", json=body, headers=spoof).status_code == 429
+
+
+def test_explanation_daily_cap_falls_back_to_template(monkeypatch):
+    import requests as rq
+
+    class R:
+        status_code = 200
+        headers: dict = {}
+
+        def json(self):
+            return {"choices": [{"message": {"content": "A grounded sentence."}}]}
+
+    monkeypatch.setattr(rq, "post", lambda *a, **k: R())
+    ex = Explainer(api_key="k", model="x", daily_cap=1)
+    assert ex.explain(["Repository: a.", "fact one"])["source"] == "llm"
+    assert ex.explain(["Repository: b.", "fact two"])["source"] == "template"
+    assert ex.count == 1
+
+
+def test_github_quota_tracking():
+    from firstpr.serve.github import GitHubQuota
+
+    q = GitHubQuota(min_remaining=100)
+    assert not q.low()
+    q.update({"x-ratelimit-remaining": "50", "x-ratelimit-reset": str(time.time() + 600)})
+    assert q.low()
+    q.update({"x-ratelimit-remaining": "4000", "x-ratelimit-reset": str(time.time() + 600)})
+    assert not q.low()
+    q.exhaust({"retry-after": "120"})
+    assert q.low()
+
+
+def test_low_quota_serves_cache_or_degraded_picks(client):
+    import time as t
+
+    assert client.post("/recommend/github", json={"username": "cached-user"}).status_code == 200
+    app = client.app
+    # find the quota object through a request: simulate a low quota via a rate-limited fetch
+    client.holder.rate_limited = True
+    r = client.post("/recommend/github", json={"username": "new-user"})
+    assert r.status_code == 200 and r.json()["degraded"]["reason"] == "github_quota"
+    assert r.json()["repos"]
+    n_calls = len(client.calls)
+    r2 = client.post("/recommend/github", json={"username": "other-user"})
+    assert r2.json().get("degraded") and len(client.calls) == n_calls  # token spared
+    r3 = client.post("/recommend/github", json={"username": "cached-user"})  # cache still served
+    assert r3.status_code == 200 and "degraded" not in r3.json()
+    assert app is not None and t.time() > 0

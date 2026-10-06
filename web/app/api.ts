@@ -40,6 +40,7 @@ export type Recommendation = {
   profile: Record<string, unknown> & { languages?: string[]; target_difficulty?: string; retrieval?: string };
   timings_ms: Record<string, number | boolean>;
   data_updated?: string;
+  degraded?: { reason: string; message: string };
 };
 
 export type Options = { languages: string[]; interests: { id: string; label: string }[]; hours: number[] };
