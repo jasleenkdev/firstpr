@@ -296,3 +296,109 @@ What I take from it:
 - **Sparse data needs heavy regularisation for ID models.** MF-BPR's best L2 is 30× its
   MovieLens value, and SASRec's best dropout is 0.8 (0.2 on MovieLens). The text models preferred
   low dropout: frozen text features already regularise.
+
+## Phase 5 results: GitHub
+
+Data: GH Archive events (BigQuery, March–October 2025) on 8,771 repositories, plus repository
+text from the GitHub GraphQL API. The repositories are 5,271 "beginner" repos (a beginner-style
+label such as *good first issue* used on an issue created in the training window), 3,000 repos
+that share the most contributors with them, and 500 repos created after the training cutoff.
+An interaction is a user's first star, fork, pull request, issue, comment or review on a repo.
+Events by people who pushed to the repo (maintainers) are dropped, so pull-request and issue
+actors are outside contributors. On October 2025, where the event payload is affordable, 93% of
+kept pull-request actors had opened a pull request themselves that month (82% for issues).
+User ids are salted hashes computed before anything is written; logins never leave the query.
+
+Split: one global cutoff. Train = March–August 2025, validation = September, test = October
+(Hacktoberfest). The 5-core filter uses training data only. A seeded sample of 30,000 of the
+521,591 qualifying users keeps CPU costs at MovieLens size: 29,554 users × 6,021 repos,
+422,191 train / 33,888 validation / 20,081 test interactions, 91% of them stars. 402 repos
+created after the cutoff carry 18% of test targets ("cold items"). Repo text is the name,
+language, description and the README as of the last commit before the cutoff.
+
+```bash
+uv run python scripts/gh_scope.py                 # BigQuery activity + GraphQL label checks
+uv run python scripts/gh_ingest.py                # 245 daily batches, idempotent
+uv run python scripts/gh_fetch.py                 # README at the cutoff, open beginner issues
+uv run python scripts/prepare_data.py --config configs/data/github.yaml
+uv run python scripts/run_experiment.py --model lightgcn --data github --mode val
+uv run python scripts/run_experiment.py --model lightgcn --data github --variant contrib --mode test
+```
+
+Tuning: log-spaced grids over about three orders of magnitude, then the four half-step
+neighbours of the best configuration (validation only, repeated once when the best moved by
+≥ 1%). Test set, full ranking, mean ± std over 3 seeds:
+
+| Model | Recall@20 | NDCG@20 | Tail Recall@20 | Cold NDCG@20 | Coverage@20 |
+|---|---|---|---|---|---|
+| Popularity | 0.0300 | 0.0133 | 0.000 | 0.0000 | 0.008 |
+| ItemKNN | 0.0531 | 0.0237 | 0.012 | 0.0000 | 0.51 |
+| MF-BPR | 0.0582 ± 0.0020 | 0.0267 ± 0.0006 | 0.009 | 0.0000 | 0.45 |
+| LightGCN | 0.0631 ± 0.0005 | 0.0284 ± 0.0003 | 0.012 | 0.0000 | 0.44 |
+| SASRec | 0.0647 ± 0.0020 | 0.0286 ± 0.0007 | 0.023 | 0.0000 | 0.49 |
+| SASRec + README text, MLP adapter | **0.0688 ± 0.0011** | **0.0311 ± 0.0004** | 0.013 | 0.0000 | 0.30 |
+| same, warm-item training softmax | 0.0681 ± 0.0006 | 0.0307 ± 0.0004 | 0.013 | **0.0022** | 0.30 |
+
+| Comparison | Δ NDCG@20 (paired bootstrap, 95% CI) |
+|---|---|
+| text MLP − SASRec | +0.0025 [+0.0013, +0.0038] |
+| text MLP − LightGCN | +0.0026 [+0.0009, +0.0043] |
+| SASRec − LightGCN | +0.0001 [−0.0019, +0.0019] |
+| LightGCN − MF-BPR | +0.0017 [+0.0005, +0.0029] |
+| MF-BPR − ItemKNN | +0.0030 [+0.0013, +0.0045] |
+| ItemKNN − Popularity | +0.0105 [+0.0087, +0.0124] |
+| cold items: warm softmax − full softmax | +0.0022 [+0.0016, +0.0030] (2,563 users) |
+
+Contribution targets only (same training data; validation/test keep only pairs with a pull
+request, issue, comment or review: 828 test targets):
+
+| Model | NDCG@20 | Recall@20 |
+|---|---|---|
+| Popularity | 0.0112 | 0.033 |
+| MF-BPR | 0.0437 ± 0.0023 | 0.097 |
+| ItemKNN | 0.0439 | 0.096 |
+| SASRec | 0.0454 ± 0.0062 | 0.110 |
+| text MLP, warm softmax | 0.0464 ± 0.0051 | 0.107 |
+| LightGCN | 0.0484 ± 0.0016 | 0.117 |
+| text MLP | **0.0509 ± 0.0060** | 0.112 |
+
+Every model beats Popularity by about 4×; among the learned models no difference is
+significant (e.g. text MLP − LightGCN +0.0025 [−0.0054, +0.0103]).
+
+NDCG@20 by user activity (quartiles of train history length):
+
+| Users with … train repos | 5–6 | 7–12 | 13–23 | 24+ |
+|---|---|---|---|---|
+| MF-BPR | 0.0309 | 0.0299 | 0.0270 | 0.0196 |
+| LightGCN | 0.0363 | 0.0330 | 0.0259 | 0.0198 |
+| LightGCN − MF-BPR (95% CI) | +0.0054 [+0.0019, +0.0090] | +0.0030 [+0.0007, +0.0055] | −0.0011 [−0.0032, +0.0010] | +0.0003 [−0.0011, +0.0017] |
+| SASRec | 0.0361 | 0.0317 | 0.0296 | 0.0186 |
+| text MLP | 0.0375 | 0.0361 | 0.0305 | 0.0210 |
+
+What I take from it:
+
+- **README text helps, again.** SASRec over frozen README embeddings is the best model overall
+  (+9% NDCG@20 over ID-based SASRec, CI excludes 0), as it was on Amazon.
+- **The sequence model's validation lead did not survive the month boundary.** On validation
+  (September) SASRec was 17% above LightGCN; on test (October) they tie. With a global split,
+  validation is one month and test the next, and October is Hacktoberfest: what users did last
+  month predicts less than on MovieLens, where SASRec won by 40%.
+- **Graph propagation helps sparse users, for the third dataset in a row.** LightGCN beats MF-BPR
+  only for users with ≤ 12 train repos.
+- **New repos are almost unreachable.** No ID model can rank a repo that did not exist in
+  training, and the text model with a full-catalogue softmax scores exactly 0 on them. A
+  warm-only training softmax lifts that to 0.0022 (cold Recall@20 0.0073, about 2.2× a random
+  ranking's 0.0033), at no significant overall cost. October's new repos were mostly hype-driven; a README predicts poorly who will star them.
+- **ItemKNN's shrinkage matters a little more than on MovieLens, much less than on Amazon.** The
+  best shrinkage beats none by 2.7% on validation (MovieLens 0.5%, Amazon 53%). What drives it
+  is co-occurrence support per item pair, not popularity skew: star co-occurrences on GitHub are
+  large counts.
+- **For contribution targets the models tie.** Contributions are 4% of interactions (828 test
+  targets), so the confidence intervals are wide. Every model is ~4× Popularity, so the
+  collaborative signal from stars does transfer to where people contribute.
+
+LLM features for the app (Groq free tier, cached): README summary and skills for 515 beginner
+repos (`gpt-oss-20b`) and difficulty, skills and a quoted evidence span for 1,154 open beginner
+issues (`gpt-oss-120b`). 99% of repo skills and 82% of issue skills are named in the source text;
+82% of evidence quotes are copied from the issue. A manual check of 30 outputs found 3 grounding
+errors (10%): an inverted fact, a wrong currency and an invented skill.
