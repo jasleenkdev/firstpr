@@ -152,7 +152,7 @@ def test_difficulty_target_and_match():
 
 def test_github_path_modes_and_constraints():
     cat = make_catalog()
-    for hist, mode in [([], "text_profile"), ([100], "blend"), ([100, 101, 102, 103], "model")]:
+    for hist, mode in [([], "text_profile"), ([100], "blend"), ([100, 101], "model")]:
         out = ranking.recommend_github(cat, stars(hist), hours=2, now=NOW)
         assert out["profile"]["retrieval"] == mode
         ids = [r["id"] for r in out["repos"]]

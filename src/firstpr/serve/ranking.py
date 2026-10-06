@@ -4,7 +4,7 @@ Repo retrieval is driven by star signals (phase 5: the models predict stars; con
 targets were too sparse to separate models):
 - GitHub path: text-SASRec over the user's catalog stars (inductive: any catalog repo can be in
   the history or the output), blended with a text profile when few stars are in the catalog
-  (the fallback ladder: >= 3 catalog stars -> model only; 1-2 -> blend; 0 -> text profile).
+  (the fallback ladder: >= LADDER_K catalog stars -> model only; fewer -> blend; 0 -> text).
 - Onboarding path: cosine between repo text embeddings and the chosen interests' embeddings,
   plus language and skill overlap.
 Issue ranking is driven by contribution signals: difficulty match (hours per week -> target
@@ -32,6 +32,10 @@ MAX_STARRED, MAX_PER_OWNER = 3, 2
 # issue score weights (hand-set: no labelled data for issue choice yet; phase 7 replay tunes them)
 W_DIFF, W_SKILL, W_RECENT, W_FREE, W_REPO = 0.35, 0.25, 0.2, 0.1, 0.1
 CLAIMED, BUSY = 0.3, 0.1  # penalties: someone is assigned (mostly taken); > 10 comments
+# fallback ladder: model weight = min(1, catalog stars / LADDER_K); LANG_BOOST for the user's
+# languages. Phase-7 replay, tuned on Sep new-repo queries, reported on Oct: k 3 -> 2 gives
+# +0.0008 NDCG@20 [+0.0001, +0.0015] on new repos; beta 0.15 kept (best on Sep).
+LADDER_K, LANG_BOOST = 2, 0.15
 TOKEN = re.compile(r"[a-z0-9+#.]+")
 
 
@@ -259,7 +263,7 @@ def recommend_github(
     if parts:
         text_vec = np.mean(parts, axis=0)
         text_vec /= np.linalg.norm(text_vec) + 1e-12
-    w_model = min(1.0, len(hist) / 3)
+    w_model = min(1.0, len(hist) / LADDER_K)
     score = np.zeros(len(cand))
     if hist:
         u = cat.encoder.encode(np.array(hist), cat.item_vecs)
@@ -267,7 +271,9 @@ def recommend_github(
     if text_vec is not None:
         score += (1 - w_model) * _z(cat.text_emb[cand] @ text_vec)
     langs = {x.lower() for x in profile.languages}
-    score += 0.15 * np.array([(cat.repos[i]["language"] or "").lower() in langs for i in cand])
+    score += LANG_BOOST * np.array(
+        [(cat.repos[i]["language"] or "").lower() in langs for i in cand]
+    )
     mode = "model" if w_model == 1 else ("blend" if hist else "text_profile")
     starred = {s.repo_id for s in stars}
     order = cand[np.argsort(-score)]
