@@ -1,0 +1,4 @@
+# copied in by scripts/deploy_api.sh
+serve/
+artifacts/
+.vercel/
