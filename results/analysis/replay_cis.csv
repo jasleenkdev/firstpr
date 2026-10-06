@@ -1,0 +1,25 @@
+cohort,queries,a,b,diff,ci_low,ci_high,p_not_positive,n_users
+2025-09,all,text-SASRec (serving architecture),Popularity,0.1773,0.1726,0.1814,0.0000,17106
+2025-09,new repo,text-SASRec (serving architecture),Popularity,0.0217,0.0190,0.0245,0.0000,6108
+2025-09,all,LightGCN (fold-in),Popularity,0.1675,0.1632,0.1716,0.0000,17106
+2025-09,new repo,LightGCN (fold-in),Popularity,0.0188,0.0163,0.0211,0.0000,6108
+2025-09,all,SASRec,Popularity,0.3951,0.3890,0.4011,0.0000,17106
+2025-09,new repo,SASRec,Popularity,0.0227,0.0199,0.0256,0.0000,6108
+2025-09,all,text-SASRec (serving architecture),LightGCN (fold-in),0.0098,0.0057,0.0135,0.0000,17106
+2025-09,new repo,text-SASRec (serving architecture),LightGCN (fold-in),0.0029,0.0007,0.0051,0.0020,6108
+2025-09,all,text-SASRec (serving architecture),SASRec,-0.2178,-0.2227,-0.2128,1.0000,17106
+2025-09,new repo,text-SASRec (serving architecture),SASRec,-0.0010,-0.0030,0.0011,0.8200,6108
+2025-09,all,LightGCN (fold-in),SASRec,-0.2276,-0.2326,-0.2227,1.0000,17106
+2025-09,new repo,LightGCN (fold-in),SASRec,-0.0039,-0.0062,-0.0018,0.9990,6108
+2025-10,all,text-SASRec (serving architecture),Popularity,0.1279,0.1236,0.1324,0.0000,14236
+2025-10,new repo,text-SASRec (serving architecture),Popularity,0.0153,0.0132,0.0175,0.0000,7771
+2025-10,all,LightGCN (fold-in),Popularity,0.1155,0.1114,0.1194,0.0000,14236
+2025-10,new repo,LightGCN (fold-in),Popularity,0.0131,0.0113,0.0150,0.0000,7771
+2025-10,all,SASRec,Popularity,0.2654,0.2586,0.2717,0.0000,14236
+2025-10,new repo,SASRec,Popularity,0.0171,0.0151,0.0196,0.0000,7771
+2025-10,all,text-SASRec (serving architecture),LightGCN (fold-in),0.0124,0.0091,0.0159,0.0000,14236
+2025-10,new repo,text-SASRec (serving architecture),LightGCN (fold-in),0.0022,0.0006,0.0038,0.0070,7771
+2025-10,all,text-SASRec (serving architecture),SASRec,-0.1375,-0.1422,-0.1327,1.0000,14236
+2025-10,new repo,text-SASRec (serving architecture),SASRec,-0.0019,-0.0034,-0.0004,0.9930,7771
+2025-10,all,LightGCN (fold-in),SASRec,-0.1499,-0.1548,-0.1448,1.0000,14236
+2025-10,new repo,LightGCN (fold-in),SASRec,-0.0040,-0.0060,-0.0022,1.0000,7771

@@ -1,0 +1,5 @@
+ladder,sep_ndcg@20,oct_ndcg@20,ci_low,ci_high
+"phase-6 serving (k=3, beta=0.15)",0.3708,0.2646,,
+"tuned on Sep (k=20, beta=0.6)",0.4445,0.3135,,
+text-SASRec alone (no ladder),0.1857,0.1349,,
+Oct: tuned - phase-6 (95% CI),,0.0489,0.0461,0.0521

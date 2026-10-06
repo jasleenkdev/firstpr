@@ -1,0 +1,17 @@
+cohort,role,model,queries,n,hit@20,ndcg@20,near_miss_language,near_miss_org
+2025-09,tune,Popularity,all,17106,0.0227,0.0084,0.4637,0.0309
+2025-09,tune,Popularity,new repo,6108,0.0223,0.0085,0.4492,0.0337
+2025-09,tune,LightGCN (fold-in),all,17106,0.3333,0.1760,0.4157,0.0438
+2025-09,tune,LightGCN (fold-in),new repo,6108,0.0670,0.0273,0.5120,0.0509
+2025-09,tune,SASRec,all,17106,0.5241,0.4036,0.3152,0.0290
+2025-09,tune,SASRec,new repo,6108,0.0798,0.0312,0.5839,0.0492
+2025-09,tune,text-SASRec (serving architecture),all,17106,0.3339,0.1857,0.4480,0.0444
+2025-09,tune,text-SASRec (serving architecture),new repo,6108,0.0742,0.0302,0.5518,0.0475
+2025-10,report,Popularity,all,14236,0.0196,0.0071,0.4793,0.0301
+2025-10,report,Popularity,new repo,7771,0.0189,0.0069,0.4756,0.0318
+2025-10,report,LightGCN (fold-in),all,14236,0.2379,0.1225,0.4547,0.0421
+2025-10,report,LightGCN (fold-in),new repo,7771,0.0516,0.0200,0.5249,0.0450
+2025-10,report,SASRec,all,14236,0.3621,0.2724,0.4202,0.0316
+2025-10,report,SASRec,new repo,7771,0.0619,0.0240,0.6005,0.0430
+2025-10,report,text-SASRec (serving architecture),all,14236,0.2463,0.1349,0.4935,0.0415
+2025-10,report,text-SASRec (serving architecture),new repo,7771,0.0567,0.0222,0.5659,0.0432

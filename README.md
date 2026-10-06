@@ -446,3 +446,36 @@ Measured on the live API (`scripts/measure_latency.py`, 20 accounts, 30 onboardi
 Exact numpy search over 8,513 repos (0.1–0.3 ms) and 32,728 issues (1.4 ms) is 5–10× faster
 than Qdrant's local mode with identical results, so the API uses numpy only
 (`results/analysis/vector_search_phase6.csv`).
+
+## Phase 7: does it recommend where newcomers actually contribute?
+
+**First-contribution replay.** For every user whose first pull request to a catalog repository
+was opened in September 2025 (17,106 users, used for tuning) or October 2025 (14,236 users,
+Hacktoberfest, reported once), rebuild what was known before that PR: their earlier stars,
+forks, issues and comments, and models trained only on March–August 2025. Then ask whether the
+repository they actually contributed to was in the top 20. Paired bootstrap 95% CIs, 3 seeds.
+
+| October 2025 | hit@20 | NDCG@20 | hit@20, repos new to the user | NDCG@20, new repos |
+|---|---|---|---|---|
+| Popularity | 0.020 | 0.007 | 0.019 | 0.007 |
+| LightGCN | 0.238 | 0.123 | 0.052 | 0.020 |
+| SASRec | **0.362** | **0.272** | **0.062** | **0.024** |
+| SASRec + README text (app architecture) | 0.246 | 0.135 | 0.057 | 0.022 |
+| app ranking (model + text profile + language), as deployed | — | 0.232 | 0.063 | 0.025 |
+
+- Most first PRs (45% in October, 64% in September) go to a repository the person had already
+  starred, forked or commented on. A sequence model that brings recent repositories back wins
+  the replay by a wide margin.
+- Finding a repository that is new to the person is hard for every model: about 1 in 16 of
+  these first PRs is in the top 20, three times the popularity baseline.
+- People with no earlier activity (a quarter of October's newcomers) get nothing better than
+  popularity from any model, which is why the app asks onboarding questions instead.
+- Tuning the app's fallback on September: optimising all queries would have ranked
+  already-known repositories higher and *hurt* discovery, so the fallback was tuned for new
+  repositories (needs 2 instead of 3 stars before trusting the model: +3% on October, CI above
+  0) and deployed. Issue-ranking weights tuned on September did not beat the current ones on
+  October (only 33 PRs link an open beginner issue), so they were not changed.
+
+The live API also gained abuse protection (per-IP limits, a daily cap on explanation calls,
+and a fallback when the shared GitHub token runs low), and a check that drops an explanation
+naming a repository that is not among its facts (found in 1 of 50 sampled explanations).
