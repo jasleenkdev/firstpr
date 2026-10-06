@@ -155,7 +155,7 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
             ) from None
         t_fetch = _ms(t0)
         t1 = time.perf_counter()
-        out = ranking.recommend_github(cat, stars, body.hours)
+        out = ranking.recommend_github(cat, stars, body.hours, exclude_owner=body.username.lower())
         t_rank = _ms(t1)
         timings = {
             "fetch_stars": t_fetch,

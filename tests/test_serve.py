@@ -301,3 +301,18 @@ def test_own_repos_dropped_from_stars(monkeypatch):
     assert [s.full_name for s in got] == ["other/r2"]
     with pytest.raises(gh.InvalidUsername):
         gh.fetch_stars("-bad-", token=None)
+
+
+def test_users_own_repos_are_never_recommended():
+    cat = make_catalog()
+    out = ranking.recommend_github(
+        cat, stars([100, 101, 102]), hours=3, now=NOW, exclude_owner="owner1"
+    )
+    assert out["repos"] and all(not r["name"].startswith("owner1/") for r in out["repos"])
+    cat.fresh[0]["name"] = "owner1/fresh"
+    assert (
+        ranking.new_projects(
+            cat, ranking.Profile(skills={"react"}, languages=["TypeScript"]), NOW, "owner1"
+        )
+        == []
+    )

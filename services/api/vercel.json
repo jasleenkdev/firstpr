@@ -2,9 +2,13 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 30,
-      "memory": 1024,
       "includeFiles": "{serve/**,artifacts/**}"
     }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
 }

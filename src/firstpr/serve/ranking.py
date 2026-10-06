@@ -179,14 +179,19 @@ def repo_skills(cat: Catalog, repo: dict[str, Any]) -> set[str]:
 
 
 def _select(
-    cat: Catalog, order: np.ndarray, starred: set[int], profile: Profile, now: datetime
+    cat: Catalog,
+    order: np.ndarray,
+    starred: set[int],
+    profile: Profile,
+    now: datetime,
+    exclude_owner: str | None = None,
 ) -> list[tuple[int, list[dict[str, Any]]]]:
     picked, n_starred, owners = [], 0, Counter()
     for i in order:
         repo = cat.repos[int(i)]
         owner = repo["name"].split("/")[0].lower()
-        if owners[owner] >= MAX_PER_OWNER:
-            continue
+        if owners[owner] >= MAX_PER_OWNER or owner == exclude_owner:
+            continue  # per-owner cap; never the user's own repos
         if repo["id"] in starred:
             if n_starred >= MAX_STARRED:
                 continue
@@ -224,8 +229,14 @@ def _repo_card(
 
 
 def recommend_github(
-    cat: Catalog, stars: list[Star], hours: float, now: datetime | None = None
+    cat: Catalog,
+    stars: list[Star],
+    hours: float,
+    now: datetime | None = None,
+    exclude_owner: str | None = None,
 ) -> dict[str, Any]:
+    """`exclude_owner`: the requesting login, lower-cased, used only to drop the user's own repos
+    within this call (never stored or returned)."""
     now = now or datetime.now(UTC)
     ordered = sorted(stars, key=lambda s: s.starred_at)  # oldest -> newest
     hist = [cat.index[s.repo_id] for s in ordered if s.repo_id in cat.index]
@@ -260,7 +271,7 @@ def recommend_github(
     mode = "model" if w_model == 1 else ("blend" if hist else "text_profile")
     starred = {s.repo_id for s in stars}
     order = cand[np.argsort(-score)]
-    picked = _select(cat, order, starred, profile, now)
+    picked = _select(cat, order, starred, profile, now, exclude_owner)
     pos = {int(c): k for k, c in enumerate(cand)}
     hist_ids = {cat.repos[i]["id"] for i in hist}
     repos = []
@@ -280,7 +291,7 @@ def recommend_github(
         repos.append(_repo_card(cat, i, issues, score[pos[i]], signals))
     return {
         "repos": repos,
-        "new_projects": new_projects(cat, profile, now),
+        "new_projects": new_projects(cat, profile, now, exclude_owner),
         "profile": {
             "languages": profile.languages,
             "interests": profile.interest_ids,
@@ -348,10 +359,14 @@ def recommend_onboarding(
     }
 
 
-def new_projects(cat: Catalog, profile: Profile, now: datetime) -> list[dict[str, Any]]:
+def new_projects(
+    cat: Catalog, profile: Profile, now: datetime, exclude_owner: str | None = None
+) -> list[dict[str, Any]]:
     """Cold start: recently created repos with fresh beginner issues (daily search pool)."""
     scored = []
     for f in cat.fresh:
+        if exclude_owner and f["name"].split("/")[0].lower() == exclude_owner:
+            continue
         words = tokens(f.get("description", "")) | {t.lower() for t in f.get("topics", [])}
         if f.get("language"):
             words.add(f["language"].lower())
