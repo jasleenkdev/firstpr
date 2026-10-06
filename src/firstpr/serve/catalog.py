@@ -104,33 +104,42 @@ class DynamicRefresher:
         self.refresh_seconds = refresh_seconds
         self.last_check = 0.0
         self.revision: str | None = None
+        self.last_error: str | None = None
         self._lock = threading.Lock()
 
-    def maybe_refresh(self) -> None:
+    def maybe_refresh(self, blocking: bool = False) -> None:
+        """Check for a new dataset revision at most every `refresh_seconds`. Serverless
+        platforms may freeze a process after the response, so callers on a path the user waits
+        for anyway (page load) pass blocking=True; others start a background thread."""
         if not self.dataset or time.time() - self.last_check < self.refresh_seconds:
             return
         if not self._lock.acquire(blocking=False):
             return
         self.last_check = time.time()
-        threading.Thread(target=self._refresh, daemon=True).start()
+        if blocking:
+            self._refresh()
+        else:
+            threading.Thread(target=self._refresh, daemon=True).start()
 
     def _refresh(self) -> None:
         try:
             headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
             base = f"https://huggingface.co/api/datasets/{self.dataset}"
-            sha = requests.get(base, headers=headers, timeout=10).json().get("sha")
+            r = requests.get(base, headers=headers, timeout=5)
+            r.raise_for_status()
+            sha = r.json().get("sha")
             if not sha or sha == self.revision:
                 return
             self.dest.mkdir(parents=True, exist_ok=True)
             for name in DYNAMIC_FILES:
                 url = f"https://huggingface.co/datasets/{self.dataset}/resolve/{sha}/{name}"
-                r = requests.get(url, headers=headers, timeout=30)
-                r.raise_for_status()
-                (self.dest / name).write_bytes(r.content)
+                f = requests.get(url, headers=headers, timeout=15)
+                f.raise_for_status()
+                (self.dest / name).write_bytes(f.content)
             self.catalog.load_dynamic(self.dest)
-            self.revision = sha
-        except Exception:  # noqa: BLE001 - keep serving the current data
-            pass
+            self.revision, self.last_error = sha, None
+        except Exception as e:  # noqa: BLE001 - keep serving the current data
+            self.last_error = type(e).__name__
         finally:
             self._lock.release()
 

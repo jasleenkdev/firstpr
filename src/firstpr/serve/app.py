@@ -150,11 +150,14 @@ def create_app(catalog: Catalog | None = None, star_fetcher: Any = fetch_stars) 
             "load_ms": load_ms,
             "github_quota_low": quota.low(),
             "explanations_today": explainer.count,
+            "data_revision": (refresher.revision or "bundled")[:8],
+            "data_refresh_error": refresher.last_error,
             **cat.stats(),
         }
 
     @app.get("/options")
     def options() -> dict[str, Any]:
+        refresher.maybe_refresh(blocking=True)  # page load: the user is not waiting on a result
         langs = Counter(
             r["language"] for r in cat.repos if r["language"] and cat.issues.get(r["id"])
         )

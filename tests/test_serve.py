@@ -395,3 +395,45 @@ def test_low_quota_serves_cache_or_degraded_picks(client):
     r3 = client.post("/recommend/github", json={"username": "cached-user"})  # cache still served
     assert r3.status_code == 200 and "degraded" not in r3.json()
     assert app is not None and t.time() > 0
+
+
+def test_dynamic_refresh_swaps_data_and_survives_errors(tmp_path, monkeypatch):
+    import gzip
+    import json as js
+
+    import requests as rq
+
+    from firstpr.serve.catalog import DynamicRefresher
+
+    files = {
+        "issues.json.gz": gzip.compress(
+            js.dumps(
+                [{"repo_id": 100, "number": 9, "title": "t", "labels": [], "created_at": None}]
+            ).encode()
+        ),
+        "repo_features.json": b"{}",
+        "fresh.json.gz": gzip.compress(b"[]"),
+        "manifest.json": b'{"updated_at": "new"}',
+    }
+
+    class R:
+        def __init__(self, url):
+            self.url = url
+            self.content = files.get(url.rsplit("/", 1)[-1], b"")
+
+        def raise_for_status(self):
+            if "broken" in self.url:
+                raise rq.HTTPError("x")
+
+        def json(self):
+            return {"sha": "abc123"}
+
+    monkeypatch.setattr(rq, "get", lambda url, **k: R(url))
+    cat = make_catalog()
+    ref = DynamicRefresher(cat, "me/data", "tok", tmp_path, refresh_seconds=0)
+    ref.maybe_refresh(blocking=True)
+    assert ref.revision == "abc123" and cat.manifest["updated_at"] == "new"
+    assert [i["number"] for i in cat.issues[100]] == [9]
+    bad = DynamicRefresher(cat, "me/broken", None, tmp_path, refresh_seconds=0)
+    bad.maybe_refresh(blocking=True)
+    assert bad.last_error == "HTTPError" and cat.manifest["updated_at"] == "new"
