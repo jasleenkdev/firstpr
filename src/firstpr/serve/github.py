@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
@@ -53,9 +54,8 @@ def fetch_stars(
     headers = {"Accept": "application/vnd.github.star+json", "X-GitHub-Api-Version": "2022-11-28"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    out: list[Star] = []
-    owner = username.lower()
-    for page in range(1, max_pages + 1):
+
+    def get_page(page: int) -> list[dict[str, Any]]:
         try:
             r = requests.get(
                 f"{API}/users/{username}/starred",
@@ -70,7 +70,15 @@ def fetch_stars(
         if r.status_code in (403, 429) or r.status_code >= 500:
             raise GitHubUnavailable(f"GitHub API returned {r.status_code}")
         r.raise_for_status()
-        batch: list[dict[str, Any]] = r.json()
+        return r.json()
+
+    # pages are fetched in parallel (one round trip instead of max_pages); an empty extra page
+    # for users with few stars costs one cheap request
+    with ThreadPoolExecutor(max_workers=max_pages) as pool:
+        pages = list(pool.map(get_page, range(1, max_pages + 1)))
+    out: list[Star] = []
+    owner = username.lower()
+    for batch in pages:
         for item in batch:
             repo = item.get("repo", item)
             if (repo.get("owner") or {}).get("login", "").lower() == owner:

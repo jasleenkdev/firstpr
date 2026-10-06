@@ -283,7 +283,7 @@ def build_static(cfg: dict[str, Any], out: Path, epochs: int) -> None:
                 "id": int(r.repo_id),
                 "name": r.name,
                 "description": scrub_text(r.description or "", 300),
-                "language": r.language,
+                "language": r.language if isinstance(r.language, str) else None,
                 "languages": list(r.languages),
                 "topics": list(r.topics),
                 "stars": int(r.stars_now),
@@ -295,7 +295,7 @@ def build_static(cfg: dict[str, Any], out: Path, epochs: int) -> None:
                 "n_actors": int(a["n_actors"]) if a is not None else 0,
             }
         )
-    (static / "repos.json").write_text(json.dumps(repos))
+    (static / "repos.json").write_text(json.dumps(repos, allow_nan=False))
 
     topic_emb = encode_texts([topic_phrase(t) for t in TOPICS], DEFAULT_ENCODER)
     np.save(static / "topic_emb.npy", topic_emb.astype(np.float32))
