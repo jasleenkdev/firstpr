@@ -9,6 +9,7 @@ facts is returned. Prompts contain repo / issue facts only, never a username.
 
 import hashlib
 import json
+import re
 import time
 from collections import OrderedDict
 from typing import Any
@@ -67,6 +68,16 @@ def collect_facts(
     return facts
 
 
+REPO_NAME = re.compile(r"\b[\w.-]+/[\w.-]+\b")
+
+
+def names_supported(text: str, facts: list[str]) -> bool:
+    """Every owner/repo name in the text appears verbatim in the facts (phase-7 check found
+    a mangled co-starred repo name in an LLM explanation)."""
+    joined = " ".join(facts).lower()
+    return all(n.lower() in joined for n in REPO_NAME.findall(text))
+
+
 def template(facts: list[str]) -> str:
     return " ".join(facts[1:4]) if len(facts) > 1 else facts[0]
 
@@ -99,6 +110,8 @@ class Explainer:
         if self.api_key and time.time() >= self.blocked_until and self.count < self.daily_cap:
             self.count += 1
             text = self._groq(PROMPT.format(facts="\n".join(f"- {f}" for f in facts)))
+            if text and not names_supported(text, facts):
+                text = None  # an unverifiable repo name: fall back to the template
             source = "llm" if text else "template"
         if not text:
             return {"text": template(facts), "source": "template", "facts": facts}

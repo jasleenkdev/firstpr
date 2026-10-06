@@ -1,0 +1,29 @@
+# Student personas for the onboarding-path check (phase 7). Interests use the app's option ids:
+# web, mobile, ml, llm, data, devops, security, tools, games, docs, education, systems, science,
+# selfhost, design, web3.
+personas:
+  - {id: p01, bio: "2nd-year CS student, Python from coursework, curious about machine learning", languages: [Python], interests: [ml, data], hours: 3}
+  - {id: p02, bio: "Final-year student building React side projects, wants frontend experience", languages: [TypeScript, JavaScript], interests: [web, design], hours: 5}
+  - {id: p03, bio: "Self-taught beginner, only HTML/CSS, wants to start with documentation fixes", languages: [HTML, CSS], interests: [docs, web], hours: 1}
+  - {id: p04, bio: "Systems course student learning Rust, likes performance and compilers", languages: [Rust], interests: [systems, tools], hours: 8}
+  - {id: p05, bio: "Data science master's student, pandas and Jupyter daily", languages: [Python], interests: [data, science], hours: 3}
+  - {id: p06, bio: "Android hobbyist writing Kotlin apps", languages: [Kotlin, Java], interests: [mobile], hours: 5}
+  - {id: p07, bio: "Go learner interested in cloud and Kubernetes", languages: [Go], interests: [devops, tools], hours: 5}
+  - {id: p08, bio: "Student excited about LLM apps and agents, knows Python", languages: [Python], interests: [llm, ml], hours: 8}
+  - {id: p09, bio: "Bilingual student who wants to help with translations, light JavaScript", languages: [JavaScript], interests: [docs, education], hours: 1}
+  - {id: p10, bio: "Game dev club member using C# and Unity basics", languages: ["C#"], interests: [games], hours: 5}
+  - {id: p11, bio: "Security club member, knows some Python and Linux", languages: [Python, Shell], interests: [security, tools], hours: 3}
+  - {id: p12, bio: "Junior who likes terminal tools and dotfiles, writes shell scripts", languages: [Shell, Lua], interests: [tools, selfhost], hours: 3}
+  - {id: p13, bio: "Physics student using Python for simulations", languages: [Python], interests: [science, data], hours: 3}
+  - {id: p14, bio: "Java student from an OOP course, wants backend experience", languages: [Java], interests: [web, tools], hours: 5}
+  - {id: p15, bio: "C++ student interested in game engines and graphics", languages: ["C++"], interests: [games, systems], hours: 8}
+  - {id: p16, bio: "Homelab enthusiast running Docker at home", languages: [Python, Go], interests: [selfhost, devops], hours: 3}
+  - {id: p17, bio: "UI-focused student who likes accessibility and design systems", languages: [TypeScript, CSS], interests: [design, web], hours: 3}
+  - {id: p18, bio: "Swift learner building iOS apps", languages: [Swift], interests: [mobile, design], hours: 5}
+  - {id: p19, bio: "PHP developer from a part-time job, wants open-source experience", languages: [PHP], interests: [web], hours: 3}
+  - {id: p20, bio: "Blockchain club member learning Solidity and TypeScript", languages: [TypeScript, Solidity], interests: [web3, web], hours: 5}
+  - {id: p21, bio: "Ruby on Rails bootcamp graduate", languages: [Ruby], interests: [web, docs], hours: 5}
+  - {id: p22, bio: "Experienced student with 12+ free hours, strong Python and C, wants hard problems", languages: [Python, C], interests: [systems, ml], hours: 12}
+  - {id: p23, bio: "Beginner with one hour a week, any language, wants learning resources", languages: [], interests: [education, docs], hours: 1}
+  - {id: p24, bio: "Dart/Flutter learner making cross-platform apps", languages: [Dart], interests: [mobile, design], hours: 3}
+  - {id: p25, bio: "Data engineering student, SQL and Python, interested in databases", languages: [Python, SQL], interests: [data, systems], hours: 5}

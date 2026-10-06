@@ -437,3 +437,31 @@ def test_dynamic_refresh_swaps_data_and_survives_errors(tmp_path, monkeypatch):
     bad = DynamicRefresher(cat, "me/broken", None, tmp_path, refresh_seconds=0)
     bad.maybe_refresh(blocking=True)
     assert bad.last_error == "HTTPError" and cat.manifest["updated_at"] == "new"
+
+
+def test_explanation_with_unknown_repo_name_falls_back(monkeypatch):
+    import requests as rq
+
+    class R:
+        status_code = 200
+        headers: dict = {}
+
+        def json(self):
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "People who starred microsoft/wet-cli also starred it."
+                        }
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(rq, "post", lambda *a, **k: R())
+    ex = Explainer(api_key="k", model="x")
+    facts = [
+        "Repository: PowerToys.",
+        "People who starred microsoft/winget-cli (which you starred) also starred this repository.",
+    ]
+    out = ex.explain(facts)
+    assert out["source"] == "template" and "winget-cli" in out["text"]
