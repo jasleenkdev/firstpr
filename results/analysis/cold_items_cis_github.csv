@@ -1,0 +1,4 @@
+model_a,model_b,metric,diff,ci_low,ci_high,p_not_positive,n_users
+sasrec_text_mlp,sasrec,cold_ndcg@20,0,0,0,1,2563
+sasrec_text_mlp_warm,sasrec_text_mlp,cold_ndcg@20,0.0022266,0.00160444,0.00302453,0,2563
+sasrec_text_mlp_warm,sasrec,cold_ndcg@20,0.0022266,0.00160444,0.00302453,0,2563

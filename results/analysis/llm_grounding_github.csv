@@ -1,0 +1,11 @@
+kind,metric,value
+repo,outputs,515.0000
+repo,parse_rate,1.0000
+repo,skills_in_source,0.9898
+issue,outputs,1154.0000
+issue,difficulty_valid,0.9697
+issue,skills_in_source,0.8227
+issue,evidence_copied,0.8241
+issue,difficulty_easy,0.5550
+issue,difficulty_medium,0.3414
+issue,difficulty_hard,0.1037

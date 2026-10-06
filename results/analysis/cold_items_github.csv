@@ -1,0 +1,8 @@
+model,cold_ndcg@20,cold_recall@20,n_users
+popularity,0,,2563
+itemknn,0,,2563
+mf_bpr,0,,2563
+sasrec,0,,2563
+lightgcn,0,,2563
+sasrec_text_mlp,0,,2563
+sasrec_text_mlp_warm,0.0022266,,2563

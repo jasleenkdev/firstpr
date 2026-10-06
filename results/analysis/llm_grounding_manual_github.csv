@@ -1,0 +1,31 @@
+kind,id,grounded,issue_type,note
+repo,325550081,1,,
+repo,830895910,1,,distros listed as skills (named in text)
+repo,9626741,1,,
+repo,729308541,0,inverted_fact,"summary says no drag-and-drop configuration; text says drag-and-drop configuration (no YAML)"
+repo,898968194,1,,
+repo,834369920,0,unsupported_fact,"summary says 3 dollars; README says 3 yuan"
+repo,37912398,1,,
+repo,28312955,1,,
+repo,888092115,1,,
+repo,40217904,1,,
+repo,662766482,1,,
+repo,263727855,1,,
+repo,589831718,1,,operating systems listed as skills (named in text)
+repo,861937484,1,,
+repo,281975310,1,,
+issue,2677,1,quality,label 'enhancement' returned as a skill
+issue,5218,1,,Go from repo language
+issue,5335,1,quality,evidence paraphrased not copied
+issue,4760,0,unsupported_skill,skill 'testing' not in issue or repo facts
+issue,4858,1,,
+issue,5305,1,,
+issue,838,1,quality,announcement / tracking issue rated easy; labels returned as skills
+issue,4788,1,quality,evidence paraphrased
+issue,4541,1,quality,discussion thread rated easy (not a task)
+issue,3779,1,,
+issue,2083,1,,skill truncated ('actionscrip')
+issue,4063,1,,
+issue,5347,1,,Python from repo language
+issue,3807,1,quality,evidence paraphrased
+issue,1746,1,,
