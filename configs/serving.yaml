@@ -1,0 +1,12 @@
+# FirstPR serving (phase 6)
+refresh:
+  dataset_name: firstpr-data   # private HF dataset <HF_USERNAME>/firstpr-data (dynamic files + catalog)
+  issues_per_repo: 20          # newest open beginner-labelled issues per catalog repo
+  fresh_issue_days: 14         # "new projects": beginner issues opened in the last 14 days ...
+  fresh_max_age_days: 180      # ... in repos created in the last 6 months ...
+  fresh_min_stars: 10          # ... with some traction (filters homework / spam repos)
+  fresh_max_repos: 300
+  llm_minutes: 40              # Groq backfill budget per scheduled run (free tier: ~350 repos/day)
+api:
+  explain_model: qwen/qwen3.8-27b  # separate Groq quota from the backfill models; no reasoning
+  rate_per_minute: 30
